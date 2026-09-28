@@ -1,0 +1,30 @@
+name: Set up the new season
+
+on:
+  schedule:
+    - cron: '47 13 * 8,9 1'  # Mondays in August and September at 13:47 UTC (9:47 AM Eastern)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-updates
+  cancel-in-progress: false
+
+jobs:
+  rollover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set up next season if its schedule is out
+        run: python scripts/new_season.py
+      - name: Save the new season's files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then echo "Nothing new to save."; else git commit -m "Set up new season" && git push; fi

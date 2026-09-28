@@ -1,0 +1,10 @@
+# Netlify settings: this is a plain static site, so there is nothing to build.
+[build]
+  publish = "."
+  command = ""
+
+# Always fetch fresh data files so new results show up right away.
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "no-cache"

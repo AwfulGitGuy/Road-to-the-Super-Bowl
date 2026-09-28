@@ -1,0 +1,5 @@
+{
+  "_note": "One entry per season (the year the season starts). venue = stadium name; hosts = team codes if it's an NFL team's home field, else []. Add next season's entry each summer.",
+  "2026": {"name": "Super Bowl LXI", "venue": "SoFi Stadium", "hosts": ["LA", "LAC"]},
+  "2027": {"name": "Super Bowl LXII", "venue": "Mercedes-Benz Stadium", "hosts": ["ATL"]}
+}
