@@ -170,6 +170,15 @@ table.vs{min-width:640px}
   </div>
 </header>
 
+<section aria-labelledby="po-h" id="po-sec" hidden>
+  <div class="sec-head">
+    <h2 id="po-h">Playoffs</h2>
+    <div class="status" id="po-status"></div>
+  </div>
+  <div class="champ" id="champ" hidden></div>
+  <div class="po-grid" id="po-grid"></div>
+</section>
+
 <section aria-labelledby="focus-h">
   <div class="sec-head">
     <h2 id="focus-h"><span id="focus-name">Steelers</span> outlook</h2>
@@ -191,15 +200,6 @@ table.vs{min-width:640px}
       <div class="nextgame" id="nextgame"></div>
     </div>
   </div>
-</section>
-
-<section aria-labelledby="po-h" id="po-sec" hidden>
-  <div class="sec-head">
-    <h2 id="po-h">Playoffs</h2>
-    <div class="status" id="po-status"></div>
-  </div>
-  <div class="champ" id="champ" hidden></div>
-  <div class="po-grid" id="po-grid"></div>
 </section>
 
 <section aria-labelledby="hist-h">
@@ -1209,7 +1209,8 @@ function renderAll() {
   const sbName = (PRI.sb || CFG.sb || {}).name || 'the Super Bowl';
   $('#eyebrow').textContent = `${YEAR} NFL season simulator`;
   $('#sbtitle').textContent = `Road to ${sbName}`;
-  $('#asof').textContent = isFinal() ? `Regular season complete · final data ${upd}` : `Results through Week ${r.lastPlayedWeek} · data updated ${upd}`;
+  const sbDone = poGames().some(g => g.round === 4 && poWinner(g));
+  $('#asof').textContent = sbDone ? `${YEAR} season complete` : isFinal() ? `Regular season complete · data updated ${upd}` : `Results through Week ${r.lastPlayedWeek} · data updated ${upd}`;
   document.querySelectorAll('.sbname').forEach(el => { el.textContent = sbName; });
   $('section[aria-labelledby="whatif-h"]').hidden = isFinal();
   $('#hfa').textContent = r.hfa.toFixed(1);
