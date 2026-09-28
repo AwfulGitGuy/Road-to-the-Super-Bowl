@@ -99,6 +99,14 @@ Before each season, add its Super Bowl to `data/super_bowl_hosts.json` (edit it 
 
 Send anyone the site's link. Each visitor picks their own team the first time, and their browser remembers it, so nobody's view or what-if picks affect anyone else's. To send someone straight to a team, add its code after a `#`, for example `…netlify.app/#BUF` for the Bills or `#PIT` for the Steelers. The codes are the ones shown in the odds table.
 
+## Security
+
+- **No secrets, logins, or personal data.** The site has no accounts, forms, cookies, or analytics. Visitors' team choices and what-if picks stay in their own browser. The jobs use only GitHub's built-in per-run token, limited to this repository.
+- **Untrusted input is checked twice.** The refresh script rejects data with unexpected team codes, IDs, dates, or characters (the run fails and opens an issue), and the page ignores any data file that fails the same checks.
+- **Locked-down site.** `netlify.toml` tells browsers the page may only load its own files and Google Fonts, send data nowhere, and not be embedded in other sites.
+- **Pinned building blocks.** The workflows use exact commits of GitHub's official `checkout` and `setup-python` actions, so a changed release can't slip in.
+- **Worth doing on your side:** turn on two-factor sign-in for GitHub and Netlify; turn off Netlify **Deploy Previews** (or make the repository private) so pull requests from strangers can't publish previews under your site's name; and limit the Claude GitHub App to only the repositories it needs.
+
 ## Things worth knowing
 
 - **Your picks** (what-if winners and QB choices) are saved in your browser only, per season.
