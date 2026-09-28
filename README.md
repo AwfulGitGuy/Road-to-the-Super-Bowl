@@ -1,6 +1,6 @@
 # Road to the Super Bowl
 
-An NFL season simulator. It rates every team from betting-market point spreads and each starting quarterback's recent efficiency, then plays out the rest of the season 10,000 times to give every team its chances of making the playoffs, winning its division, and winning the Super Bowl. It includes what-if picks, a starting-QB override, week-by-week odds history, a score-only comparison rating with a 2018–2025 backtest, and past seasons.
+An NFL season simulator. It rates every team from betting-market point spreads and each starting quarterback's recent efficiency, then plays out the rest of the season 10,000 times to give every team its chances of making the playoffs, winning its division, and winning the Super Bowl. It includes what-if picks, a starting-QB override, week-by-week odds history, a playoff bracket with real results, a score-only comparison rating with a 2018–2025 backtest, and past seasons (2021 onward).
 
 This folder runs entirely on its own on GitHub, for free: GitHub Pages hosts the page, and GitHub Actions refreshes the data every morning and sets up each new season in late summer. No AI and no paid services are involved.
 
@@ -14,7 +14,7 @@ Data comes from the free, volunteer-run [nflverse](https://github.com/nflverse) 
 | --- | --- |
 | `index.html` | The whole page. It reads its data from the `data/` folder next to it. |
 | `data/config.json` | Which season is current, its Super Bowl, number of games, and when the daily refresh should stop. |
-| `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats. |
+| `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats, playoff games. |
 | `data/priors-YYYY.json` | Each season's starting values (carried over from the season before). |
 | `data/super_bowl_hosts.json` | Where each Super Bowl is played. **The one file you update by hand, once a year (optional).** |
 | `scripts/update.py` | Daily refresh: downloads the latest nflverse files and rebuilds the current season's data. |
@@ -73,7 +73,7 @@ That's it. From now on it runs every morning on its own.
 
 ## What happens on its own
 
-- **Every morning** (12:52 UTC, which is 8:52 AM Eastern in the fall): the daily refresh downloads the latest scores, betting lines, projected starting quarterbacks, and QB stats, checks them, and saves the current season's file. The page picks it up the next time you open it. After the last regular-season game it stops doing anything until the next season is set up.
+- **Every morning** (12:52 UTC, which is 8:52 AM Eastern in the fall): the daily refresh downloads the latest scores, betting lines, projected starting quarterbacks, and QB stats, checks them, and saves the current season's file. The page picks it up the next time you open it. It keeps going through the playoffs and the Super Bowl (so the bracket and odds fill in live), then does nothing until the next season is set up.
 - **Mondays in August and September:** the new-season job checks whether next season's schedule is out. The first time it is, it carries over quarterback values and team ratings from the season that just ended, builds the new season's files, and makes it the current season. On every other Monday it does nothing.
 - **Safety checks:** if a download fails, a score goes missing, a score looks impossible, or the league's format changes (different teams, number of games, or divisions), the job saves nothing, is marked failed, and opens an issue (see below). The page keeps showing the last good data, and the next scheduled run tries again.
 

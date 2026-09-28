@@ -111,7 +111,7 @@ if problems:
     print('ROLLOVER FAILED — do not save:'); [print(' -', p) for p in problems]; sys.exit(1)
 n = Y - 1965
 last_date = max(r['gameday'] for r in ng)
-end = (datetime.date.fromisoformat(last_date) + datetime.timedelta(days=10)).isoformat()
+end = (datetime.date.fromisoformat(last_date) + datetime.timedelta(days=40)).isoformat()   # through the Super Bowl
 seasons = sorted(set(cfg.get('seasons', [])) | {Y})
 config = {"current": Y, "seasons": seasons, "games": len(ng), "weeks": max(int(r['week']) for r in ng),
           "sb": {"number": n, "name": f"Super Bowl {roman(n)}", "venue": venue, "hosts": hosts},

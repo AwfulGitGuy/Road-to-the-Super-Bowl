@@ -17,6 +17,16 @@ for r in rows:
               None if as_ is None else int(as_), None if hs is None else int(hs),
               num('spread_line'), 1 if r['location'] == 'Neutral' else 0, aq, hq])
 g.sort(key=lambda x: (x[1], x[2], x[3] or '', x[0]))
+# Playoff games (Wild Card through Super Bowl), once the matchups exist in the data.
+ROUND = {'WC': 1, 'DIV': 2, 'CON': 3, 'SB': 4}
+po = []
+for r in csv.DictReader(open(src)):
+    if r['season'] != year or r['game_type'] not in ROUND: continue
+    hs, as_ = r['home_score'], r['away_score']
+    po.append([r['game_id'], ROUND[r['game_type']], r['gameday'], r['gametime'], r['away_team'], r['home_team'],
+               int(float(as_)) if as_ not in ('', 'NA') else None, int(float(hs)) if hs not in ('', 'NA') else None,
+               1 if r['location'] == 'Neutral' else 0])
+po.sort(key=lambda x: (x[1], x[2], x[3] or '', x[0]))
 qb = []
 if os.path.exists(qbsrc) and os.path.getsize(qbsrc) > 1000:
     for r in csv.DictReader(open(qbsrc)):
@@ -52,11 +62,16 @@ if problems:
 out = {"season": int(year), "updatedAt": datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%MZ'),
        "source": f"nflverse/nfldata games.csv + nflverse stats_player_week_{year}.csv",
        "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB"],
-       "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names}
+       "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
+       "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
 json.dump(out, open('season.json', 'w'), separators=(',', ':'))
 pit = [x for x in g if x[6] is not None and 'PIT' in (x[4], x[5])]
 w = sum(1 for x in pit if (x[5] == 'PIT' and x[7] > x[6]) or (x[4] == 'PIT' and x[6] > x[7]))
 l = sum(1 for x in pit if (x[5] == 'PIT' and x[7] < x[6]) or (x[4] == 'PIT' and x[6] < x[7]))
 lastwk = max([x[1] for x in g if x[6] is not None], default=0)
-print('CHECKS OK:', len(g), 'games', final, 'final', sum(1 for x in g if x[8] is not None), 'with spread,', qbgames,
+pofinal = sum(1 for x in po if x[6] is not None)
+champ = ''
+sb = [x for x in po if x[1] == 4 and x[6] is not None]
+if sb: champ = f"| {sb[0][5] if sb[0][7] > sb[0][6] else sb[0][4]} won the Super Bowl "
+print('CHECKS OK:', len(g), 'games', final, 'final', f'| {pofinal} of {len(po)} playoff games final', champ, sum(1 for x in g if x[8] is not None), 'with spread,', qbgames,
       'games with QB stats | latest completed week', lastwk, '| Steelers', f'{w}-{l}', '| ALL_FINAL' if final == len(g) else '')
