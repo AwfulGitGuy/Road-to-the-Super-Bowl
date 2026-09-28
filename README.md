@@ -20,6 +20,7 @@ Data comes from the free, volunteer-run [nflverse](https://github.com/nflverse) 
 | `scripts/update.py` | Daily refresh: downloads the latest nflverse files and rebuilds the current season's data. |
 | `scripts/new_season.py` | Yearly setup: once next season's schedule is published, builds its starting values and data files. |
 | `scripts/build_data.py`, `scripts/rollover.py`, `scripts/common.py` | The work behind the two scripts above, including the safety checks. |
+| `scripts/report_failure.sh`, `scripts/report_success.sh` | Open and close the "job failed" issue. |
 | `.github/workflows/` | The two schedules GitHub runs. Copies are in `workflows-copy/` in case your computer hides the `.github` folder. |
 | `netlify.toml` | Settings for hosting on Netlify (optional). |
 
@@ -74,7 +75,15 @@ That's it. From now on it runs every morning on its own.
 
 - **Every morning** (12:52 UTC, which is 8:52 AM Eastern in the fall): the daily refresh downloads the latest scores, betting lines, projected starting quarterbacks, and QB stats, checks them, and saves the current season's file. The page picks it up the next time you open it. After the last regular-season game it stops doing anything until the next season is set up.
 - **Mondays in August and September:** the new-season job checks whether next season's schedule is out. The first time it is, it carries over quarterback values and team ratings from the season that just ended, builds the new season's files, and makes it the current season. On every other Monday it does nothing.
-- **Safety checks:** if a download fails, a score goes missing, a score looks impossible, or the league's format changes (different teams, number of games, or divisions), the job saves nothing and is marked failed. GitHub emails you when a run fails. The page keeps showing the last good data, and the next scheduled run tries again.
+- **Safety checks:** if a download fails, a score goes missing, a score looks impossible, or the league's format changes (different teams, number of games, or divisions), the job saves nothing, is marked failed, and opens an issue (see below). The page keeps showing the last good data, and the next scheduled run tries again.
+
+## How you'll hear about problems
+
+When either job fails, it opens an issue in this repository titled **"Daily data refresh failed"** or **"New-season setup failed"**, with the last lines of the error and a link to the full log. GitHub emails you about new issues in your own repositories (check **Settings → Notifications** on your GitHub account if you don't see them). If the same job fails again, it adds a comment instead of opening a second issue, and once a run succeeds it closes the issue itself with a "Fixed" note. Many problems are temporary (nflverse late or briefly down) and fix themselves by the next run.
+
+If an issue stays open for more than a couple of days, copy its text into a chat with Claude (or anyone who knows Python) to get it fixed.
+
+**Test the alarm once:** Actions tab → **Daily data refresh** → **Run workflow**, tick **Test the alarm**, and run it. You should get an issue and an email within a few minutes. Then run it again normally (unticked) and the issue closes itself.
 
 ## The one yearly chore (optional)
 

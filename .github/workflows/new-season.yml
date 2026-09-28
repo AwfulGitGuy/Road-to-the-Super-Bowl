@@ -4,9 +4,15 @@ on:
   schedule:
     - cron: '47 13 * 8,9 1'  # Mondays in August and September at 13:47 UTC (9:47 AM Eastern)
   workflow_dispatch:
+    inputs:
+      test_alert:
+        description: 'Test the alarm: make this run fail on purpose'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: data-updates
@@ -21,10 +27,26 @@ jobs:
         with:
           python-version: '3.12'
       - name: Set up next season if its schedule is out
-        run: python scripts/new_season.py
+        shell: bash
+        run: |
+          if [ "${{ inputs.test_alert }}" = "true" ]; then echo "Test of the failure alarm (nothing is wrong)." | tee run.log; exit 1; fi
+          python scripts/new_season.py 2>&1 | tee run.log; exit ${PIPESTATUS[0]}
       - name: Save the new season's files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add data
           if git diff --cached --quiet; then echo "Nothing new to save."; else git commit -m "Set up new season" && git push; fi
+      - name: Report a problem
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB: New-season setup
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/report_failure.sh
+      - name: Close any open problem report
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB: New-season setup
+        run: bash scripts/report_success.sh
