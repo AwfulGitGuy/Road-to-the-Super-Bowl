@@ -1162,13 +1162,14 @@ function renderFocus() {
     const x = (a - z) * 100; if (Math.abs(x) < 0.5) return '';
     return ` <span class="delta ${x > 0 ? 'up' : 'down'}">${x > 0 ? '▲' : '▼'} ${Math.abs(x).toFixed(0)} pts</span>`;
   };
+  const pf = (v, fine) => (isFinal() && v === 0 ? '0%' : pct(v, fine));
   const wl = `${t.projW.toFixed(1)}–${(17 - t.projW).toFixed(1)}`;
   $('#stats').innerHTML = `
-    <div class="stat wide"><div class="v big num">${pct(t.playoff)}</div><div class="k">Chance to make the playoffs${d(t.playoff, b0.playoff)}</div></div>
-    <div class="stat"><div class="v num">${pct(t.divWin)}</div><div class="k">Win the ${esc(t.div)}${d(t.divWin, b0.divWin)}</div></div>
-    <div class="stat"><div class="v num">${pct(t.bye)}</div><div class="k">Earn the #1 seed and bye${d(t.bye, b0.bye)}</div></div>
-    <div class="stat"><div class="v num">${pct(t.confWin, true)}</div><div class="k">Win the ${t.conf}${d(t.confWin, b0.confWin)}</div></div>
-    <div class="stat"><div class="v num">${pct(t.sbWin, true)}</div><div class="k">Win <span class="sbname">${esc((PRI.sb || CFG.sb || {}).name || 'the Super Bowl')}</span>${d(t.sbWin, b0.sbWin)}</div></div>
+    <div class="stat wide"><div class="v big num">${pf(t.playoff)}</div><div class="k">Chance to make the playoffs${d(t.playoff, b0.playoff)}</div></div>
+    <div class="stat"><div class="v num">${pf(t.divWin)}</div><div class="k">Win the ${esc(t.div)}${d(t.divWin, b0.divWin)}</div></div>
+    <div class="stat"><div class="v num">${pf(t.bye)}</div><div class="k">Earn the #1 seed and bye${d(t.bye, b0.bye)}</div></div>
+    <div class="stat"><div class="v num">${pf(t.confWin, true)}</div><div class="k">Win the ${t.conf}${d(t.confWin, b0.confWin)}</div></div>
+    <div class="stat"><div class="v num">${pf(t.sbWin, true)}</div><div class="k">Win <span class="sbname">${esc((PRI.sb || CFG.sb || {}).name || 'the Super Bowl')}</span>${d(t.sbWin, b0.sbWin)}</div></div>
     <div class="stat"><div class="v num">${rec(t)}</div><div class="k">Record now</div></div>
     <div class="stat"><div class="v num">${wl}</div><div class="k">Average final record</div></div>
     <div class="stat wide"><div class="k">Team rating <b class="num">${sign(t.rating)}</b> points vs. an average team (${ratingRank(t)} of 32)</div></div>
@@ -1401,9 +1402,9 @@ function renderHistory() {
     pts.forEach((p, i) => { s += `<circle class="${sr.cls}d" cx="${x(i)}" cy="${y(p.v[sr.k])}" r="${i === n - 1 ? 5 : 3.5}"/>`; });
   }
   // direct labels at the right end, nudged apart so they never overlap
-  const ends = S.map(sr => ({ sr, v: pts[n - 1].v[sr.k], yy: y(pts[n - 1].v[sr.k]) })).sort((a, b) => a.yy - b.yy);
-  for (let i = 1; i < ends.length; i++) if (ends[i].yy - ends[i - 1].yy < 15) ends[i].yy = ends[i - 1].yy + 15;
-  for (const e of ends) s += `<text class="lbl" x="${x(n - 1) + 10}" y="${Math.min(H - B, e.yy) + 4}">${pct(e.v, true)} ${e.sr.label.replace('Win ', '').replace('Make ', '')}</text>`;
+  const ends = S.map(sr => ({ sr, v: pts[n - 1].v[sr.k], yy: y(pts[n - 1].v[sr.k]) })).sort((a, b) => b.yy - a.yy);
+  for (let i = 0; i < ends.length; i++) ends[i].yy = Math.min(ends[i].yy, i ? ends[i - 1].yy - 15 : H - B - 2);   // stack upward so labels never overlap
+  for (const e of ends) s += `<text class="lbl" x="${x(n - 1) + 10}" y="${Math.max(T + 8, e.yy) + 4}">${e.v === 0 ? '0%' : pct(e.v, true)} ${e.sr.label.replace('Win ', '').replace('Make ', '')}</text>`;
   s += `<line class="cross" id="hx" x1="0" x2="0" y1="${T}" y2="${H - B}" visibility="hidden"/>`;
   pts.forEach((p, i) => { const w = (W - L - R) / Math.max(1, n - 1); s += `<rect class="hit" x="${x(i) - w / 2}" y="${T}" width="${w}" height="${H - T - B}" data-i="${i}"/>`; });
   s += '</svg><div class="tip multi" hidden></div>';
