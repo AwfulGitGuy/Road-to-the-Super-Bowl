@@ -2,7 +2,7 @@
 #   python3 rollover.py NEWYEAR games.csv stats_player_week_PREVYEAR.csv prev_priors.json prev_config.json [SB_HOSTS] [SB_VENUE]
 #   SB_HOSTS: comma-separated team codes whose home stadium hosts the Super Bowl, or "none".
 # Writes priors.json and config.json, prints ROLLOVER OK / ROLLOVER FAILED.
-import csv, json, sys, datetime
+import csv, json, os, sys, datetime
 Y = int(sys.argv[1]); P = Y - 1
 games_csv, stats_csv, prev_priors_path, prev_config_path = sys.argv[2:6]
 hosts = [] if len(sys.argv) < 7 or sys.argv[6].lower() in ('', 'none') else sys.argv[6].split(',')
@@ -39,7 +39,9 @@ if ng and teams_new != TEAMS: problems.append(f'team list changed: {sorted(set(t
 per = {}
 for r in ng:
     for t in (r['home_team'], r['away_team']): per[t] = per.get(t, 0) + 1
-if ng and len(set(per.values())) != 1: problems.append(f'teams play different numbers of games: {sorted(set(per.values()))}')
+# ALLOW_UNEVEN=1 is only for building past seasons that had a cancelled game (e.g. 2022 BUF-CIN).
+if ng and len(set(per.values())) != 1 and os.environ.get('ALLOW_UNEVEN') != '1':
+    problems.append(f'teams play different numbers of games: {sorted(set(per.values()))}')
 for r in ng:
     same = DIVOF.get(r['home_team']) == DIVOF.get(r['away_team'])
     if r.get('div_game') in ('0', '1') and (r['div_game'] == '1') != same:
