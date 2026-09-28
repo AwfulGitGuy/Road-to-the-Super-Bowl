@@ -65,13 +65,10 @@ out = {"season": int(year), "updatedAt": datetime.datetime.utcnow().strftime('%Y
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
        "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
 json.dump(out, open('season.json', 'w'), separators=(',', ':'))
-pit = [x for x in g if x[6] is not None and 'PIT' in (x[4], x[5])]
-w = sum(1 for x in pit if (x[5] == 'PIT' and x[7] > x[6]) or (x[4] == 'PIT' and x[6] > x[7]))
-l = sum(1 for x in pit if (x[5] == 'PIT' and x[7] < x[6]) or (x[4] == 'PIT' and x[6] < x[7]))
 lastwk = max([x[1] for x in g if x[6] is not None], default=0)
 pofinal = sum(1 for x in po if x[6] is not None)
 champ = ''
 sb = [x for x in po if x[1] == 4 and x[6] is not None]
 if sb: champ = f"| {sb[0][5] if sb[0][7] > sb[0][6] else sb[0][4]} won the Super Bowl "
 print('CHECKS OK:', len(g), 'games', final, 'final', f'| {pofinal} of {len(po)} playoff games final', champ, sum(1 for x in g if x[8] is not None), 'with spread,', qbgames,
-      'games with QB stats | latest completed week', lastwk, '| Steelers', f'{w}-{l}', '| ALL_FINAL' if final == len(g) else '')
+      'games with QB stats | latest completed week', lastwk, '| ALL_FINAL' if final == len(g) else '')
