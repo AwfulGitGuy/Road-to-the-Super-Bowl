@@ -4,15 +4,31 @@
 import csv, json, sys, datetime, os
 year = sys.argv[1]; src = sys.argv[2]; qbsrc = sys.argv[3]; expected = int(sys.argv[4])
 prev_path = sys.argv[5] if len(sys.argv) > 5 else None
+import re
+# Only well-formed values from the source ever reach the page (the page also re-checks).
+TEAMS = {'ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE','DAL','DEN','DET','GB','HOU','IND','JAX','KC',
+         'LA','LAC','LV','MIA','MIN','NE','NO','NYG','NYJ','PHI','PIT','SEA','SF','TB','TEN','WAS'}
+GAME_ID = re.compile(r'^\d{4}_\d{2}_[A-Z]{2,3}_[A-Z]{2,3}$')
+PLAYER_ID = re.compile(r'^[0-9A-Za-z-]{1,20}$')
+DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$'); TIME = re.compile(r'^(\d{2}:\d{2})?$')
+clean_name = lambda s: re.sub(r'[^\w .\'-]', '', s or '', flags=re.UNICODE)[:40]
+bad = []
+def check_row(r):
+    if r['home_team'] not in TEAMS or r['away_team'] not in TEAMS: bad.append(f"{r['game_id']}: unknown team code")
+    if not GAME_ID.match(r['game_id']): bad.append(f"unexpected game id {r['game_id'][:30]!r}")
+    if not DATE.match(r['gameday']) or not TIME.match(r['gametime'] if r['gametime'] not in ('NA',) else ''): bad.append(f"{r['game_id']}: unexpected date/time")
 rows = [r for r in csv.DictReader(open(src)) if r['season'] == year and r['game_type'] == 'REG']
+for r in rows: check_row(r)
 g = []; names = {}
 nz = lambda v: v if v not in ('', 'NA') else None
 for r in rows:
     num = lambda k: (float(r[k]) if r[k] not in ('', 'NA') else None)
     hs, as_ = num('home_score'), num('away_score')
     aq, hq = nz(r['away_qb_id']), nz(r['home_qb_id'])
-    if aq: names[aq] = r['away_qb_name']
-    if hq: names[hq] = r['home_qb_name']
+    aq = aq if aq and PLAYER_ID.match(aq) else None
+    hq = hq if hq and PLAYER_ID.match(hq) else None
+    if aq: names[aq] = clean_name(r['away_qb_name'])
+    if hq: names[hq] = clean_name(r['home_qb_name'])
     g.append([r['game_id'], int(r['week']), r['gameday'], r['gametime'], r['away_team'], r['home_team'],
               None if as_ is None else int(as_), None if hs is None else int(hs),
               num('spread_line'), 1 if r['location'] == 'Neutral' else 0, aq, hq])
@@ -22,6 +38,7 @@ ROUND = {'WC': 1, 'DIV': 2, 'CON': 3, 'SB': 4}
 po = []
 for r in csv.DictReader(open(src)):
     if r['season'] != year or r['game_type'] not in ROUND: continue
+    check_row(r)
     hs, as_ = r['home_score'], r['away_score']
     po.append([r['game_id'], ROUND[r['game_type']], r['gameday'], r['gametime'], r['away_team'], r['home_team'],
                int(float(as_)) if as_ not in ('', 'NA') else None, int(float(hs)) if hs not in ('', 'NA') else None,
@@ -33,10 +50,10 @@ if os.path.exists(qbsrc) and os.path.getsize(qbsrc) > 1000:
         if r.get('position') != 'QB' or r.get('season_type') != 'REG' or r.get('season') != year: continue
         fl = lambda k: float(r[k]) if r[k] not in ('', 'NA') else 0.0
         plays = fl('attempts') + fl('sacks_suffered') + fl('carries')
-        if plays <= 0: continue
+        if plays <= 0 or not PLAYER_ID.match(r['player_id']) or not GAME_ID.match(r['game_id']): continue
         qb.append([r['game_id'], r['player_id'], int(plays), round(fl('passing_epa') + fl('rushing_epa'), 3)])
-        names.setdefault(r['player_id'], r['player_display_name'])
-problems = []
+        names.setdefault(r['player_id'], clean_name(r['player_display_name']))
+problems = bad[:5]
 if len(g) != expected: problems.append(f'expected {expected} games, found {len(g)}')
 tomorrow = (datetime.datetime.utcnow() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 for x in g:
