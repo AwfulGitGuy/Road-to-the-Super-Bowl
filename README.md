@@ -95,6 +95,10 @@ Before each season, add its Super Bowl to `data/super_bowl_hosts.json` (edit it 
 
 `hosts` is the team code(s) if the stadium is an NFL team's home field (for example SoFi Stadium is `["LA", "LAC"]`, MetLife Stadium is `["NYG", "NYJ"]`), otherwise `[]`. It only matters if that team reaches the game. If you forget, the Super Bowl is treated as a neutral site. 2026 and 2027 are already filled in.
 
+## Sharing it
+
+Send anyone the site's link. Each visitor picks their own team the first time, and their browser remembers it, so nobody's view or what-if picks affect anyone else's. To send someone straight to a team, add its code after a `#`, for example `…netlify.app/#BUF` for the Bills or `#PIT` for the Steelers. The codes are the ones shown in the odds table.
+
 ## Things worth knowing
 
 - **Your picks** (what-if winners and QB choices) are saved in your browser only, per season.
