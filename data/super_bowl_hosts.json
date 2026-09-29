@@ -3,5 +3,6 @@
   "2026": {"name": "Super Bowl LXI", "venue": "SoFi Stadium", "hosts": ["LA", "LAC"]},
   "2027": {"name": "Super Bowl LXII", "venue": "Mercedes-Benz Stadium", "hosts": ["ATL"]},
   "2028": {"name": "Super Bowl LXIII", "venue": "Allegiant Stadium", "hosts": ["LV"]},
-  "2029": {"name": "Super Bowl LXIV", "venue": "Nissan Stadium", "hosts": ["TEN"]}
+  "2029": {"name": "Super Bowl LXIV", "venue": "Nissan Stadium", "hosts": ["TEN"]},
+  "_lastCheck": {"source": "Wikipedia", "agrees": ["2026", "2027", "2028", "2029"], "differs": [], "added": [], "notYetAwarded": ["2030", "2031"]}
 }
