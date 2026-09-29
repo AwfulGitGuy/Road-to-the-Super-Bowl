@@ -45,6 +45,14 @@ for r in csv.DictReader(open(src)):
                int(float(as_)) if as_ not in ('', 'NA') else None, int(float(hs)) if hs not in ('', 'NA') else None,
                1 if r['location'] == 'Neutral' else 0])
 po.sort(key=lambda x: (x[1], x[2], x[3] or '', x[0]))
+# Super Bowl site, read from the data once nflverse lists the game (about two weeks before it's played):
+# the host team(s) are whoever played regular-season home games at that stadium this season.
+sb_site = None
+for r in csv.DictReader(open(src)):
+    if r['season'] == year and r['game_type'] == 'SB' and re.match(r'^[A-Z0-9]{3,8}$', r.get('stadium_id') or ''):
+        homes = sorted({x['home_team'] for x in csv.DictReader(open(src))
+                        if x['season'] == year and x['game_type'] == 'REG' and x['location'] == 'Home' and x.get('stadium_id') == r['stadium_id'] and x['home_team'] in TEAMS})
+        sb_site = {'stadium': clean_stadium(r.get('stadium')), 'hosts': homes}
 qb = []
 if os.path.exists(qbsrc) and os.path.getsize(qbsrc) > 1000:
     for r in csv.DictReader(open(qbsrc)):
@@ -88,6 +96,7 @@ out = {"season": int(year), "updatedAt": datetime.datetime.utcnow().strftime('%Y
        "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB", "stadium"],
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
        "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
+if sb_site: out['sbSite'] = sb_site
 # Injured regular starters. A team's regular starter is the QB with the most starts in its last 8 games of
 # last season plus this season's final games. If someone else is listed to start next and the regular is
 # Out or Doubtful on the injury report (or on injured reserve), the page blends in his chance of returning.

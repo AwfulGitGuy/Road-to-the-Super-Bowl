@@ -42,15 +42,18 @@ If an issue stays open for more than a day or so, copy its text into a chat with
 
 **To test the alarm:** Actions tab → **Data refresh** → **Run workflow**, tick **Test the alarm**, and run it. An issue should open within a few minutes (the test skips the two-in-a-row rule). Run it again unticked and the issue closes itself.
 
-## The one yearly chore (optional)
+## Super Bowl sites (nothing to do for now)
 
-Before each season, add its Super Bowl to `data/super_bowl_hosts.json` (edit it on GitHub with the pencil icon). The entry is keyed by the year the season starts:
+The Super Bowl's host team gets half the usual home-field edge if it reaches the game, so the model needs to know where each Super Bowl is played. Two sources cover it:
+
+- **Once the game is set:** nflverse lists the Super Bowl about two weeks before it's played, with its stadium. The refresh reads the site from there and works out the host team from which team plays its home games in that stadium. No list needed.
+- **Before that (preseason and regular season):** `data/super_bowl_hosts.json`, keyed by the year the season starts. Every Super Bowl announced so far is filled in, through the 2029 season (Super Bowl LXIV in Nashville). When the league announces the next one, add a line like this with the pencil icon on GitHub:
 
 ```json
-"2028": {"name": "Super Bowl LXIII", "venue": "Stadium name", "hosts": ["TEAM"]}
+"2030": {"name": "Super Bowl LXV", "venue": "Stadium name", "hosts": ["TEAM"]}
 ```
 
-`hosts` is the team code(s) if the stadium is an NFL team's home field (SoFi Stadium is `["LA", "LAC"]`, MetLife Stadium is `["NYG", "NYJ"]`), otherwise `[]`. It only matters if that team reaches the game; if you forget, the Super Bowl is treated as a neutral site. 2026 and 2027 are already filled in.
+`hosts` is the team code(s) if the stadium is an NFL team's home field (SoFi Stadium is `["LA", "LAC"]`, MetLife Stadium is `["NYG", "NYJ"]`), otherwise `[]`. If a season is missing, its Super Bowl is treated as a neutral site until the game appears in the data, which changes the odds by a fraction of a point at most.
 
 It's also worth a glance at the **Actions** tab in mid-August: there should be a "Set up the new season" run from each Monday. If there isn't, check the cron-job.org account (an expired key is the likely cause).
 
