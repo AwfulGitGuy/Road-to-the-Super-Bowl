@@ -47,7 +47,7 @@ If an issue stays open for more than a day or so, copy its text into a chat with
 The Super Bowl's host team gets half the usual home-field edge if it reaches the game, so the model needs to know where each Super Bowl is played. Two sources cover it:
 
 - **Once the game is set:** nflverse lists the Super Bowl about two weeks before it's played, with its stadium. The refresh reads the site from there and works out the host team from which team plays its home games in that stadium. No list needed.
-- **Before that (preseason and regular season):** `data/super_bowl_hosts.json`, keyed by the year the season starts. Every Super Bowl announced so far is filled in, through the 2029 season (Super Bowl LXIV in Nashville). When the league announces the next one, add a line like this with the pencil icon on GitHub:
+- **Before that (preseason and regular season):** `data/super_bowl_hosts.json`, keyed by the year the season starts. Each time the new-season job runs (Mondays in August and September, or by hand), `scripts/sb_sites.py` checks Wikipedia's page for each of the next six Super Bowls and adds any newly awarded site, with the host team worked out from the schedule. It never changes an existing entry; if Wikipedia disagrees with one, it notes that under `_lastCheck` in the file (`differs`), along with which entries it confirmed. To add or fix one by hand, use the pencil icon on GitHub:
 
 ```json
 "2030": {"name": "Super Bowl LXV", "venue": "Stadium name", "hosts": ["TEAM"]}
