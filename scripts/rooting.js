@@ -10,7 +10,7 @@ const year = cfg.current;
 const season = JSON.parse(fs.readFileSync(path.join(DATA, `season-${year}.json`)));
 const pri = JSON.parse(fs.readFileSync(path.join(DATA, `priors-${year}.json`)));
 const SIMS = 10000;
-const opts = { sims: SIMS, qbPrior: pri.qb, marketPrior: pri.market, sbHosts: ((pri.sb || cfg.sb || {}).hosts) || [] };
+const opts = { sims: SIMS, qbPrior: pri.qb, marketPrior: pri.market, sbHosts: (season.sbSite && season.sbSite.hosts) || ((pri.sb || cfg.sb || {}).hosts) || [] };
 const out = path.join(DATA, `rooting-${year}.json`);
 const base = M.simulate(season, opts);
 if (!base.upcoming.length) { if (fs.existsSync(out)) fs.unlinkSync(out); console.log('Rooting guide: regular season complete, nothing to do.'); process.exit(0); }

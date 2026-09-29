@@ -1444,9 +1444,11 @@ try {
 } catch (e) { worker = null; }
 const pending = new Map();
 if (worker) worker.onmessage = e => { const f = pending.get(e.data.id); pending.delete(e.data.id); f && f(e.data.res); };
+// Super Bowl host team(s): from the data once the game is listed, otherwise from the season's setup.
+const sbHosts = () => (season.sbSite && Array.isArray(season.sbSite.hosts) ? season.sbSite.hosts : (PRI.sb || CFG.sb || {}).hosts) || [];
 function job(kind, opts) {
   return new Promise(resolve => {
-    opts = { qbPrior: PRI.qb, marketPrior: PRI.market, sbHosts: (PRI.sb || CFG.sb || {}).hosts || [], ...opts };
+    opts = { qbPrior: PRI.qb, marketPrior: PRI.market, sbHosts: sbHosts(), ...opts };
     if (worker) { const id = ++jobSeq; pending.set(id, resolve); worker.postMessage({ id, kind, season, opts }); }
     else setTimeout(() => resolve(kind === 'hist' ? M.history(season, opts) : M.simulate(season, opts)), 0);
   });
@@ -2163,6 +2165,7 @@ function validSeason(d) {
     if (d.playoffs) { const px = Object.fromEntries(d.playoffFields.map((k, i) => [k, i])); for (const r of d.playoffs) if (!okGame(r, px)) return false; }
     for (const r of d.qbGames || []) if (!RX.gid.test(r[0]) || !RX.pid.test(r[1]) || !okNum(r[2]) || !okNum(r[3])) return false;
     for (const [k, v] of Object.entries(d.qbNames || {})) if (!RX.pid.test(k) || typeof v !== 'string' || v.length > 60) return false;
+    if (d.sbSite !== undefined && !(d.sbSite && Array.isArray(d.sbSite.hosts) && d.sbSite.hosts.every(t => M.TEAMS.includes(t)) && /^[A-Za-z0-9 &'.-]{0,60}$/.test(d.sbSite.stadium || ''))) return false;
     if (d.qbOut !== undefined) {
       if (!d.qbOut || typeof d.qbOut !== 'object' || Array.isArray(d.qbOut)) return false;
       for (const [t, o] of Object.entries(d.qbOut)) if (!M.TEAMS.includes(t) || !o || !RX.pid.test(o.qb) || !['ir', 'head', 'other'].includes(o.cls) ||
