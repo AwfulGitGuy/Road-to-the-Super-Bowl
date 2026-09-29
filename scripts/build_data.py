@@ -12,6 +12,7 @@ GAME_ID = re.compile(r'^\d{4}_\d{2}_[A-Z]{2,3}_[A-Z]{2,3}$')
 PLAYER_ID = re.compile(r'^[0-9A-Za-z-]{1,20}$')
 DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$'); TIME = re.compile(r'^(\d{2}:\d{2})?$')
 clean_name = lambda s: re.sub(r'[^\w .\'-]', '', s or '', flags=re.UNICODE)[:40]
+clean_stadium = lambda s: re.sub(r"[^A-Za-z0-9 &'.-]", '', (s or '') if s not in ('NA',) else '')[:60]
 bad = []
 def check_row(r):
     if r['home_team'] not in TEAMS or r['away_team'] not in TEAMS: bad.append(f"{r['game_id']}: unknown team code")
@@ -31,7 +32,7 @@ for r in rows:
     if hq: names[hq] = clean_name(r['home_qb_name'])
     g.append([r['game_id'], int(r['week']), r['gameday'], r['gametime'], r['away_team'], r['home_team'],
               None if as_ is None else int(as_), None if hs is None else int(hs),
-              num('spread_line'), 1 if r['location'] == 'Neutral' else 0, aq, hq])
+              num('spread_line'), 1 if r['location'] == 'Neutral' else 0, aq, hq, clean_stadium(r.get('stadium'))])
 g.sort(key=lambda x: (x[1], x[2], x[3] or '', x[0]))
 # Playoff games (Wild Card through Super Bowl), once the matchups exist in the data.
 ROUND = {'WC': 1, 'DIV': 2, 'CON': 3, 'SB': 4}
@@ -84,7 +85,7 @@ if problems:
     print('CHECKS FAILED — do not save:'); [print(' -', p) for p in problems[:10]]; sys.exit(1)
 out = {"season": int(year), "updatedAt": datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%MZ'),
        "source": f"nflverse/nfldata games.csv + nflverse stats_player_week_{year}.csv",
-       "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB"],
+       "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB", "stadium"],
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
        "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
 # Injured regular starters. A team's regular starter is the QB with the most starts in its last 8 games of

@@ -8,7 +8,8 @@ An NFL season simulator. It plays out the rest of the season 10,000 times to est
 
 - **See the league at a glance:** Super Bowl favorites, each division's likely winner, and the week's biggest risers and fallers.
 - **Follow your team:** playoff chances, likely win total, possible playoff seeds, next game, and a chart of how its odds have moved week by week. Your pick is remembered in your browser.
-- **Play "what if":** choose winners for upcoming games, or change a team's starting quarterback, and every number re-runs.
+- **See the schedule:** every week's games with kickoff times in your own time zone, stadiums, final scores (with upsets marked), each team's win chance, and which channel or service usually carries each game. Switch to "just my team" for a full season view.
+- **Play "what if":** pick winners for upcoming games right in the schedule, or change a team's starting quarterback, and every number re-runs.
 - **Look back:** past seasons (2021 onward) with the full playoff bracket and how the odds moved all year.
 - **Share a team:** add its code to the link, for example [`#PIT`](https://awfulgitguy.github.io/Road-to-the-Super-Bowl/#PIT) or [`#BUF`](https://awfulgitguy.github.io/Road-to-the-Super-Bowl/#BUF).
 
