@@ -39,7 +39,10 @@ def stadium_of(wikitext):
     if not m: return None
     s = clean(m.group(1))
     if not s or re.search(r'\bTB[AD]\b|to be (announced|determined)|\?', s, flags=re.I): return None
-    return s[:60]
+    import unicodedata                                          # plain characters only, like stadium names from nflverse
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode()
+    s = re.sub(r"[^A-Za-z0-9 &'.-]", '', s).strip()
+    return s[:60] or None
 
 norm = lambda s: re.sub(r'[^a-z0-9]', '', re.sub(r'^new\s+', '', (s or '').lower()))
 
