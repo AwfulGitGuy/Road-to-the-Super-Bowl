@@ -13,7 +13,7 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats, playoff games. |
 | `data/priors-YYYY.json` | Each season's starting values, carried over from the season before. |
 | `data/super_bowl_hosts.json` | Where each Super Bowl is played. **The one file you update by hand, once a year (optional).** |
-| `data/last_check.txt` | A small monthly marker that keeps GitHub from pausing the schedules. |
+| `data/last_check.txt` | A small monthly marker (left over from when GitHub's own schedules were used; harmless). |
 | `scripts/update.py` | The refresh: downloads the latest nflverse files and rebuilds the current season's data. |
 | `scripts/new_season.py` | The yearly setup: once next season's schedule is published, builds its starting values and data files. |
 | `scripts/build_data.py`, `scripts/rollover.py`, `scripts/common.py` | The work behind those two, including the safety checks. |
@@ -24,11 +24,11 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 
 ## What happens on its own
 
-- **Data refresh** (`daily-refresh.yml`): every 30 minutes during game windows (Thursday night, Sunday from late morning to past midnight, Monday night, and Saturdays late in the season), and every 3 hours the rest of the week, plus a run just before 6 AM Eastern every day so overnight changes are in before people check in the morning. Each run downloads the latest scores, betting lines, projected starting quarterbacks, QB stats, and the injury report and roster status (used to spot an injured regular starter; if those two downloads fail, the run carries on without them), checks them, and saves the current season's file only if something changed. GitHub Pages republishes the site a minute or so later. The refresh keeps going through the playoffs and the Super Bowl, then does nothing until the new season is set up.
-- **New-season setup** (`new-season.yml`): Mondays in August and September. The first time next season's schedule is out, it carries over quarterback values and team ratings from the season that just ended, builds the new season's files, and makes it the current season. On every other Monday it does nothing. You can also run it early from the Actions tab any time after the schedule is released in May; if it's too early, it just says so.
-- **The timer:** GitHub's own schedules turned out to be unreliable (the first scheduled run started almost two hours late), so a free outside timer at **cron-job.org** starts the refresh at :07 and :37 past every hour, September through February (Eastern time). It calls GitHub's "run workflow" address with a key that can only start workflows in this repository. GitHub's schedule stays in place as a backup; if both fire, the second run waits for the first.
+- **Data refresh** (`daily-refresh.yml`): every 30 minutes, at :07 and :37 past the hour, September through February. Each run downloads the latest scores, betting lines, projected starting quarterbacks, QB stats, and the injury report and roster status (used to spot an injured regular starter; if those two downloads fail, the run carries on without them), checks them, and saves the current season's file only if something changed. GitHub Pages republishes the site a minute or so later. The refresh keeps going through the playoffs and the Super Bowl, then does nothing until the new season is set up.
+- **New-season setup** (`new-season.yml`): Mondays at 9:47 AM Eastern in August and September. The first time next season's schedule is out, it carries over quarterback values and team ratings from the season that just ended, builds the new season's files, and makes it the current season. On every other Monday it does nothing. You can also run it early from the Actions tab any time after the schedule is released in May; if it's too early, it just says so.
+- **The timer:** both jobs are started by two jobs in a free **cron-job.org** account (Eastern time), which call GitHub's "run workflow" address with a key that can only start workflows in this repository. GitHub's own schedules were removed: the first scheduled run started almost two hours late, and GitHub switches schedules off in public repositories after 60 days without activity, which would have happened every spring. You can still start either job by hand from the Actions tab.
 - **The key expires July 1, 2027** (chosen in the offseason on purpose). To renew: GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → generate a new one for this repository only, with **Actions: Read and write**, then paste it into the cron-job.org job's `Authorization` header as `Bearer <key>`. If it lapses, cron-job.org emails you when calls fail.
-- **cron-job.org job settings, for reference:** POST to `https://api.github.com/repos/AwfulGitGuy/Road-to-the-Super-Bowl/actions/workflows/daily-refresh.yml/dispatches` with body `{"ref":"main"}` and headers `Authorization: Bearer <key>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2026-03-10`, `Content-Type: application/json`, `User-Agent: road-to-the-super-bowl-refresh`. A 2xx response means it worked.
+- **cron-job.org job settings, for reference:** the refresh job POSTs to `https://api.github.com/repos/AwfulGitGuy/Road-to-the-Super-Bowl/actions/workflows/daily-refresh.yml/dispatches` (Minutes 7 and 37, every hour, September–February), and the new-season job to the same address with `new-season.yml` (Minutes 47, Hour 9, Mondays, August–September). Both send body `{"ref":"main"}` and headers `Authorization: Bearer <key>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2026-03-10`, `Content-Type: application/json`, `User-Agent: road-to-the-super-bowl-refresh`. A 2xx response means it worked.
 
 ## How you'll hear about problems
 
@@ -52,7 +52,7 @@ Before each season, add its Super Bowl to `data/super_bowl_hosts.json` (edit it 
 
 `hosts` is the team code(s) if the stadium is an NFL team's home field (SoFi Stadium is `["LA", "LAC"]`, MetLife Stadium is `["NYG", "NYJ"]`), otherwise `[]`. It only matters if that team reaches the game; if you forget, the Super Bowl is treated as a neutral site. 2026 and 2027 are already filled in.
 
-It's also worth a glance at the **Actions** tab each August. GitHub pauses schedules in public repositories after 60 days with no activity. The refresh's commits and the monthly `last_check.txt` marker should prevent that, but a paused schedule shows a banner with an **Enable workflow** button.
+It's also worth a glance at the **Actions** tab in mid-August: there should be a "Set up the new season" run from each Monday. If there isn't, check the cron-job.org account (an expired key is the likely cause).
 
 ## If the NFL changes its format
 
@@ -60,7 +60,7 @@ If the league changes the number of teams or games, the divisions, or the playof
 
 ## Security
 
-- **No secrets, logins, or personal data.** The site has no accounts, forms, cookies, or analytics. Visitors' team choices and what-if picks stay in their own browser. The jobs use only GitHub's built-in per-run token, limited to this repository.
+- **No secrets, logins, or personal data.** The site has no accounts, forms, cookies, or analytics. Visitors' team choices and what-if picks stay in their own browser. Inside GitHub, the jobs use only GitHub's built-in per-run token, limited to this repository. The one outside key belongs to the cron-job.org timer: it is limited to this repository and can only start, re-run or cancel workflow runs (it can't read or change code), and it is stored only in that cron-job.org account, never in this repository.
 - **Untrusted input is checked twice.** The refresh script rejects data with unexpected team codes, IDs, dates, or characters, and the page ignores any data file that fails the same checks.
 - **Locked-down page.** The page tells browsers it may only load its own files and Google Fonts, and may send data nowhere.
 - **Pinned building blocks.** The workflows use exact commits of GitHub's official `checkout` and `setup-python` actions.

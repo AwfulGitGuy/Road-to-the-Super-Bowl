@@ -1,17 +1,9 @@
 name: Data refresh
 
 on:
-  schedule:
-    # Times are UTC. Eastern is UTC-4 until early November, then UTC-5.
-    - cron: '7 */3 * * *'            # every 3 hours, all week (catches line moves and injury news)
-    - cron: '45 9,10 * * *'          # just before 6 AM Eastern year-round (9:45 UTC in summer/fall, 10:45 in winter)
-    - cron: '7,37 13-23 * * 0'       # Sunday games (about 9 AM to 8 PM Eastern)
-    - cron: '7,37 0-5 * * 1'         # Sunday night game, into early Monday
-    - cron: '7,37 23 * * 1'          # Monday night kickoff (early doubleheader games)
-    - cron: '7,37 0-5 * * 2'         # Monday night game, into early Tuesday
-    - cron: '7,37 0-5 * * 5'         # Thursday night game, into early Friday
-    - cron: '7,37 17-23 * * 6'       # Saturday games (late season and playoffs)
-    - cron: '7,37 0-5 * * 0'         # Saturday night games, into early Sunday
+  # Started by an outside timer (cron-job.org) at :07 and :37 past every hour, September-February, Eastern time.
+  # GitHub's own schedules were removed: they started runs hours late, and GitHub switches them off after
+  # 60 days without repository activity. See docs/MAINTAINING.md.
   workflow_dispatch:         # adds a "Run workflow" button on the Actions tab
     inputs:
       test_alert:
