@@ -254,7 +254,10 @@ td.team .chip{margin-right:8px}
 .histbox:has(>p){aspect-ratio:900/290;display:flex;align-items:center;justify-content:center}
 #ov-move:has(>p){min-height:150px}
 /* schedule */
-.game .when{display:flex;flex-wrap:wrap;gap:0 6px}
+.game{justify-content:flex-start;gap:1px}
+.game .when{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45}
+.game .when+.pick,.game .when+.res{margin-top:6px}
+.res .mid .tag{font-size:10.5px;padding:1px 5px}
 .game .tv{color:var(--ink-2)}
 .game .tv a{color:inherit}
 .game .wk{font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--ink-2)}
@@ -1415,7 +1418,7 @@ function tvInfo(g) {
   if (dow === 4 && h >= 19) return { label: 'Thursday Night Football', where: 'Prime Video' };
   if (dow === 0 && h >= 19) return { label: 'Sunday Night Football', where: 'NBC, Peacock' };
   if (dow === 1 && h >= 19) return { label: 'Monday Night Football', where: 'ESPN or ABC' };
-  if (dow === 0 && h >= 12) return { label: 'Sunday afternoon', where: 'CBS or FOX, depending on your area' };
+  if (dow === 0 && h >= 12) return { label: 'Sunday afternoon', where: 'CBS or FOX (varies by area)' };
   return check(dow === 6 ? 'Saturday game' : 'Special game');
 }
 const tvText = g => { const t = tvInfo(g); if (!t) return ''; return t.where ? `${t.label}: ${t.where}` : `${t.label}: <a href="${LISTINGS}" target="_blank" rel="noopener">check listings</a>`; };
@@ -1658,20 +1661,22 @@ function seasonRows() {
 }
 function gameCard(g, showWeek) {
   const me = g.home === focus || g.away === focus;
-  const meta = [showWeek ? `<span class="wk">Week ${g.week}</span>` : '', when(g), venue(g)].filter(Boolean).join(' · ');
+  // Fixed structure so every card in a row is the same height: one line for time and line, one for the venue.
+  const ln0 = line(g);
+  const top = `<div class="when">${showWeek ? `<span class="wk">Week ${g.week}</span> · ` : ''}${when(g)}${ln0 ? ' · line ' + ln0 : ''}</div>`;
+  const place = `<div class="when" title="${venue(g)}">${venue(g) || '&nbsp;'}</div>`;
   const final = g.hs !== null && g.hs !== undefined;
   if (final) {
     const hw = g.hs > g.as, tie = g.hs === g.as;
     const fav = g.spread > 0 ? g.home : g.spread < 0 ? g.away : null;
     const upset = !tie && fav && fav !== (hw ? g.home : g.away);
     const side = (t, sc, won, right) => `<div class="side ${tie ? '' : won ? 'w' : 'l'}">${right ? `<span class="sc">${sc}</span><span class="t">${chip(t)}${esc(M.NAMES[t])}</span>` : `<span class="t">${chip(t)}${esc(M.NAMES[t])}</span><span class="sc">${sc}</span>`}</div>`;
-    return `<div class="game done${me ? ' me' : ''}"><div class="when">${meta}${line(g) ? ' · line ' + line(g) : ''}${upset ? ' <span class="tag">Upset</span>' : ''}</div>
-      <div class="res">${side(g.away, g.as, !hw, false)}<span class="mid">${tie ? 'tie' : 'final'}</span>${side(g.home, g.hs, hw, true)}</div></div>`;
+    return `<div class="game done${me ? ' me' : ''}">${top}${place}
+      <div class="res">${side(g.away, g.as, !hw, false)}<span class="mid">${upset ? '<span class="tag" title="The underdog won">Upset</span>' : tie ? 'tie' : 'final'}</span>${side(g.home, g.hs, hw, true)}</div></div>`;
   }
-  const pk = picks[g.id], pH = baseP(g.id), ln = line(g), tv = tvText(g);
-  return `<div class="game${me ? ' me' : ''}">
-      <div class="when">${meta}${ln ? ' · line ' + ln : ''}</div>
-      ${tv ? `<div class="when tv">${tv}</div>` : ''}
+  const pk = picks[g.id], pH = baseP(g.id), tv = tvText(g);
+  return `<div class="game${me ? ' me' : ''}">${top}${place}
+      <div class="when tv">${tv || '&nbsp;'}</div>
       <div class="pick" role="group" aria-label="${esc(M.NAMES[g.away])} ${g.neutral ? 'vs.' : 'at'} ${esc(M.NAMES[g.home])}">
         <button type="button" data-g="${g.id}" data-t="${g.away}" aria-pressed="${pk === g.away}"><span class="t">${chip(g.away)}${esc(M.NAMES[g.away])}</span><span class="p num">${pct(1 - pH)}</span></button>
         <button type="button" class="mid" data-g="${g.id}" data-t="" aria-pressed="${!pk}"${pk ? ' aria-label="Clear this pick" title="Clear this pick"' : ''}>${pk ? '✕' : g.neutral ? 'vs' : 'at'}</button>
