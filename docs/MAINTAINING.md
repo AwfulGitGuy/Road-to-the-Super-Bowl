@@ -6,7 +6,9 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 
 | Path | What it is |
 | --- | --- |
-| `index.html` | The whole page. It reads its data from the `data/` folder next to it. |
+| `index.html` | The whole page, assembled from `src/` by `scripts/build_page.py`. It reads its data from the `data/` folder next to it. |
+| `src/` | The page's source: `model.js` (the simulation), `app.js` (the page), `page_head.html` and `page_body.html` (layout and styles), and the score-only rating (`perf.js`, `perf_const.json`). **Edit these, then run `python scripts/build_page.py`**, rather than editing `index.html` directly. |
+| `data/rooting-YYYY.json` | "Who to root for": every team's chances after each result of the coming week's games. Rebuilt by the refresh. |
 | `data/config.json` | Which season is current, its Super Bowl, number of games, and when the refresh stops for the year. |
 | `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats, playoff games. |
 | `data/priors-YYYY.json` | Each season's starting values, carried over from the season before. |
@@ -15,6 +17,8 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | `scripts/update.py` | The refresh: downloads the latest nflverse files and rebuilds the current season's data. |
 | `scripts/new_season.py` | The yearly setup: once next season's schedule is published, builds its starting values and data files. |
 | `scripts/build_data.py`, `scripts/rollover.py`, `scripts/common.py` | The work behind those two, including the safety checks. |
+| `scripts/rooting.js` | Builds the "who to root for" file by playing the same 10,000 seasons twice for each game (once with each result). Runs with Node, which GitHub's machines already have; if it fails, the refresh carries on and the page hides that panel. |
+| `scripts/build_page.py` | Assembles `index.html` from `src/`. |
 | `scripts/report_failure.sh`, `scripts/report_success.sh` | Open and close the "job failed" issue. |
 | `.github/workflows/` | The two schedules GitHub runs. Copies are in `workflows-copy/` in case a computer hides the `.github` folder. |
 

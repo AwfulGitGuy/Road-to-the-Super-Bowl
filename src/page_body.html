@@ -1,0 +1,177 @@
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow" id="eyebrow">2026 NFL season simulator</div>
+    <h1 id="sbtitle">Road to Super Bowl LXI</h1>
+    <p class="intro">Plays out the rest of the NFL season 10,000 times to estimate every team's chances of making the playoffs and winning it all. Click any team to follow it.</p>
+  </div>
+  <div class="meta">
+    <label class="teamsel" id="seasonwrap">Season <select id="seasonsel" aria-label="Choose a season"><option>2026</option></select></label>
+    <p class="updline"><span id="asof" class="num">Loading season data…</span><span id="runstatus" class="status" aria-live="polite"></span></p>
+  </div>
+</header>
+<nav class="secnav" id="secnav" aria-label="Jump to a section">
+  <button type="button" data-jump="ov-sec">League</button>
+  <button type="button" data-jump="po-sec">Playoffs</button>
+  <button type="button" data-jump="focus-sec" id="nav-team">Your team</button>
+  <button type="button" data-jump="table-sec">All teams</button>
+  <button type="button" data-jump="proj-sec">Bracket</button>
+  <button type="button" data-jump="sched-sec">Schedule</button>
+  <button type="button" data-jump="how-sec">How it works</button>
+</nav>
+
+<section aria-labelledby="ov-h" id="ov-sec">
+  <div class="sec-head">
+    <h2 id="ov-h">Around the league</h2>
+  </div>
+  <div class="ov-grid">
+    <div class="ov-card"><h3>Super Bowl favorites</h3><p class="k-note">Record so far, and each team's chance of winning the Super Bowl.</p><ol class="ov-list" id="ov-sb"><li class="status">Calculating…</li></ol></div>
+    <div class="ov-card"><h3>Division favorites</h3><p class="k-note">The team most likely to win each division, and its chance.</p><div class="ov-divs" id="ov-div"><p class="status">Calculating…</p></div></div>
+    <div class="ov-card"><h3>Biggest moves this week</h3><p class="k-note">Change in each team's chance of making the playoffs since last week, in percentage points.</p><div id="ov-move"><p class="status">Calculating…</p></div></div>
+  </div>
+</section>
+
+<section aria-labelledby="po-h" id="po-sec" hidden>
+  <div class="sec-head">
+    <h2 id="po-h">Playoffs</h2>
+    <div class="status" id="po-status"></div>
+  </div>
+  <div class="champ" id="champ" hidden></div>
+  <div class="po-grid" id="po-grid"></div>
+</section>
+
+<section aria-labelledby="focus-h" id="focus-sec">
+  <div class="sec-head">
+    <h2 id="focus-h"><span id="focus-name">Your team</span> outlook</h2>
+    <label class="teamsel">Team
+      <select id="teamsel" aria-label="Choose a team to focus on"></select>
+    </label>
+  </div>
+  <div class="picker" id="picker" hidden></div>
+  <div class="focus" id="focus">
+    <div class="nextgame" id="nextgame"></div>
+    <div class="stats" id="stats"><p class="status">Calculating…</p></div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div>
+        <h3>Final regular-season wins</h3>
+        <div class="chartbox" id="windist"></div>
+      </div>
+      <div>
+        <div class="h3row"><h3>Playoff seed</h3><span class="k-note num" id="seedout"></span></div>
+        <div class="chartbox" id="seeddist"></div>
+      </div>
+    </div>
+    <div class="rootbox" id="rootbox" hidden></div>
+  </div>
+</section>
+
+<section aria-labelledby="hist-h" id="hist-sec">
+  <div class="sec-head">
+    <h2 id="hist-h">Odds over time</h2>
+    <div class="legend" id="histlegend"></div>
+  </div>
+  <p class="note">How <span id="focus-name-3">your team’s</span> chances looked before the season and after each week, as the model would have seen them at the time (results and betting lines up to that point only). Each point is 2,000 simulated seasons, so small wiggles are noise.</p>
+  <div class="chartbox histbox" id="histchart"><p class="status">Replaying the season week by week…</p></div>
+</section>
+
+<section aria-labelledby="table-h" id="table-sec">
+  <div class="sec-head">
+    <h2 id="table-h">Every team's odds</h2>
+    <div class="tbl-ctrl">
+      <button type="button" class="btn sm" id="ratingsbtn" aria-pressed="false">Show QBs and ratings</button>
+      <div class="seg" role="group" aria-label="Conference">
+        <button type="button" data-conf="AFC" aria-pressed="true">AFC</button>
+        <button type="button" data-conf="NFC" aria-pressed="false">NFC</button>
+        <button type="button" data-conf="ALL" aria-pressed="false">All</button>
+      </div>
+    </div>
+  </div>
+  <p class="note">Grouped by division. Tap a column heading to rank by it, or Team to go back to divisions. Darker shading means more likely.</p>
+  <div class="tablebox"><table id="odds"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<section aria-labelledby="proj-h" id="proj-sec" hidden>
+  <div class="sec-head">
+    <h2 id="proj-h">Projected playoff bracket</h2>
+  </div>
+  <p class="note">The likeliest playoff field, with the favorite advancing from every game. Each division goes to its likeliest winner and the wild cards to the three likeliest other teams, seeded by projected wins. The percentage by each team is its chance of winning that game. This exact bracket is unlikely: it's a guide to the most likely matchups, not a prediction that all of them happen.</p>
+  <div class="champ" id="proj-champ"></div>
+  <div class="po-grid" id="proj-grid"></div>
+</section>
+
+<section aria-labelledby="sched-h" id="sched-sec">
+  <div class="sec-head">
+    <h2 id="sched-h">Schedule</h2>
+    <div class="tbl-ctrl">
+      <div class="pickbar" id="pickbar"><span id="pickcount">No picks yet</span><button type="button" class="btn sm" id="clearpicks" disabled>Clear picks</button></div>
+      <div class="seg" id="schedmode" role="group" aria-label="Show games">
+        <button type="button" data-mode="week" aria-pressed="true">By week</button>
+        <button type="button" data-mode="team" aria-pressed="false" id="schedteam">Your team</button>
+      </div>
+    </div>
+  </div>
+  <p class="note" id="sched-note">Kickoff times are in your time zone. <span id="whatif-note">Pick a winner for any upcoming game and every number on the page re-runs with that result locked in; each button shows that team's chance of winning. Your picks stay in this browser only.</span> Weeks with a gold dot include a game for <span id="focus-name-2">your team</span>.</p>
+  <div class="weeks" id="weeks" role="group" aria-label="Week"></div>
+  <div class="games" id="games"></div>
+  <details class="details watch">
+    <summary><span>How to watch<small>Which channel or service carries each kind of game</small></span></summary>
+    <div class="inner">
+      <ul class="watchlist">
+        <li><b>Sunday afternoon</b> (1:00 and 4:05/4:25 PM ET): CBS or FOX. Which games you get depends on your local stations, so a game can be on in one city and not another. Out-of-market games are on NFL Sunday Ticket (YouTube and YouTube TV).</li>
+        <li><b>Thursday Night Football</b>: Prime Video.</li>
+        <li><b>Sunday Night Football</b>: NBC and Peacock.</li>
+        <li><b>Monday Night Football</b>: ESPN or ABC (some weeks both).</li>
+        <li><b>International, holiday and Saturday games</b>: these vary (Netflix, NFL Network, Prime Video and others), so the schedule says "check listings" for them.</li>
+        <li><b>On a phone or tablet</b>: NFL+ streams local and prime-time games live.</li>
+      </ul>
+      <p class="note">Networks change from season to season and games can be moved late in the year. The <a href="https://www.nfl.com/schedules/">NFL's official schedule</a> lists the exact channel for every game.</p>
+    </div>
+  </details>
+</section>
+
+<section aria-labelledby="how-h" id="how-sec">
+  <h2 id="how-h">How it works</h2>
+  <p class="note">Every team is rated from betting-market point spreads, with each starting quarterback rated separately. The rest of the season, then the playoffs, are played out 10,000 times with the NFL's real tiebreakers, and each percentage is how often that outcome happened. Open the sections below for the details.</p>
+  <details class="details">
+    <summary><span>The model, step by step<small>Ratings, win chances, the simulation, and what it leaves out</small></span></summary>
+    <div class="inner">
+  <div class="how">
+    <div><h3>1 · Rate every team</h3><p>Each team gets a rating in points, fitted to the betting-market point spreads on every game that has one. Recent weeks count more (each older week weighs 0.7× the next). The starting quarterback is split out: each QB has a value from his efficiency per play (EPA) over recent seasons, and the market lines set how many points that is worth. A backup starting only lowers a team for the games he starts. A rating of +3 means a 3-point favorite over an average team on a neutral field. Home field is fitted too, currently <b id="hfa" class="num">…</b> points.</p></div>
+    <div><h3>2 · Turn ratings into win chances</h3><p>A point gap becomes a win chance using a curve fitted to every game from 2002 to 2017 and checked on 2018 to 2025. A team favored by 3 points wins about 60% of the time, and a 7-point favorite about 73%. Games with a posted line use the market line directly.</p></div>
+    <div><h3>3 · Play the season 10,000 times</h3><p>Every remaining game is played at random using those chances. Each run also lets every team's strength drift up or down week by week, because injuries happen and teams change over a season. The drift is sized from how much betting-market ratings have actually moved in past seasons. Games with this week's lines get no drift, and games far off get the most (up to about <b id="shock" class="num">…</b> points by season's end). Tested by replaying 2006 to 2025 from Weeks 3, 8 and 12.</p></div>
+    <div><h3>4 · Seed and play the playoffs</h3><p>Each run builds the standings, breaks ties with the NFL's tiebreakers (head-to-head, division record, common games, conference record, strength of victory and schedule), seeds 7 teams per conference, and plays out every round. Run on the final standings of every season from 2002 to 2025, this seeding code reproduces all 48 real conference brackets exactly. Super Bowl LXI is at SoFi Stadium, so the Rams or Chargers get half the usual home-field edge if they reach it. The percentages are how often each outcome happened.</p></div>
+    <div><h3>What it leaves out</h3><p>The model can't know how long a particular injury will last. When a team's regular starter is out or doubtful, it plays his backup next week and then gives the starter a growing chance of being back each week, based on how often injured starters returned from 2012 to 2025 (faster after concussions). Starters on injured reserve are assumed to stay out, and a benched starter is assumed to stay benched. Use the Starting QB menu in the team panel to test any other scenario. Injuries at other positions count only once the betting market reacts to them. Tied games aren't simulated (they're under 1% of games). The rare points-based tiebreakers that come after strength of schedule are settled by coin flip, which happens in fewer than 1 in 1,000 simulated seasons.</p></div>
+    <div><h3>Two ratings</h3><p>The playoff odds use the market rating. The comparison section uses our own score-only rating, which lost to the market in every test season. It is there to show why the market makes the better foundation.</p></div>
+    <div><h3>Updates</h3><p>Scores, betting lines and starting quarterbacks come from the free <a href="https://github.com/nflverse">nflverse</a> project. They refresh every 30 minutes while games are on and every few hours otherwise, with a run just before 6 AM Eastern each day, through the Super Bowl. An open page checks for new data every 30 minutes and re-runs itself when it arrives.</p></div>
+  </div>
+    </div>
+  </details>
+  <details class="details" id="vs-sec">
+    <summary><span id="vs-h">Our score-only rating vs. the market<small>A second rating built without betting lines, this week's disagreements, and a 2018–2025 backtest</small></span></summary>
+    <div class="inner">
+  <p class="note">This is a second, independent rating built only from final scores, with no betting lines. After each game, both teams' ratings move by 8% of how far the result beat expectations (margins are capped at 21 points). Ratings carry 70% over from one season to the next. Everything above still uses the market; this section is for comparison only.</p>
+  <div class="tablebox"><table id="vs" class="vs"><thead><tr><th scope="col">Game</th><th scope="col">When</th><th scope="col">Market line</th><th scope="col">Our line</th><th scope="col">Gap</th><th scope="col">We lean</th></tr></thead><tbody></tbody></table></div>
+  <p class="note" id="vs-note"></p>
+  <h3 style="margin-top:10px">Backtest: 2,227 games, 2018–2025</h3>
+  <p class="note">The rating's settings were chosen using 2002–2017 only, then frozen and run forward through 2018–2025, seasons it never saw. Each game compares our line with the market's closing line.</p>
+  <div class="bt-stats" id="bt-stats"></div>
+  <div class="bt-grid">
+    <div>
+      <h3>Against the spread, by size of disagreement</h3>
+      <div class="chartbox" id="atschart"></div>
+      <p class="note" style="font-size:13px">Each bar shows how often the side our rating preferred covered the spread. The dashed line is 52.4%, the break-even rate at standard −110 odds; the thin line is 50%. The number under each bar is how many games qualified.</p>
+    </div>
+    <div>
+      <h3>Season by season</h3>
+      <div class="tablebox"><table class="mini" id="bt-seasons"><thead><tr><th scope="col">Season</th><th scope="col">Avg. miss, ours</th><th scope="col">Avg. miss, market</th><th scope="col">Winners, ours</th><th scope="col">Winners, market</th></tr></thead><tbody></tbody></table></div>
+      <p class="note" style="font-size:13px">Average miss is the typical error in the predicted margin (root-mean-square, in points); lower is better. Winners is how often the side each one favored won the game.</p>
+    </div>
+  </div>
+    </div>
+  </details>
+</section>
+<footer class="foot">
+  <p>Data from <a href="https://github.com/nflverse">nflverse</a>, a free, volunteer-run project. Code and data files are on <a href="https://github.com/AwfulGitGuy/Road-to-the-Super-Bowl">GitHub</a>.<span id="foot-upd"></span></p>
+  <p>An independent fan project with no connection to the NFL or its teams. The percentages are estimates, not guarantees.</p>
+</footer>
+</div>
