@@ -62,6 +62,12 @@ for x in g:
     if a is not None:
         if not (0 <= a <= 80 and 0 <= h <= 80): problems.append(f'{x[0]}: implausible score {a}-{h}')
         if x[2] > tomorrow: problems.append(f'{x[0]}: marked final before its date {x[2]}')
+# Stale-data check: a game from the last few weeks that kicked off 2+ days ago should have its score by now.
+# (Older games are left alone, so rebuilding a past season with a cancelled game still works.)
+now = datetime.datetime.utcnow()
+recent_lo, stale_hi = (now - datetime.timedelta(days=30)).strftime('%Y-%m-%d'), (now - datetime.timedelta(days=2)).strftime('%Y-%m-%d')
+stale = [x[0] for x in g + po if x[6] is None and recent_lo <= x[2] <= stale_hi]
+if stale: problems.append(f'{len(stale)} game(s) played 2+ days ago still have no score (e.g. {stale[0]}); nflverse may have stopped updating, or a game was postponed')
 final = sum(1 for x in g if x[6] is not None)
 qbgames = len(set(r[0] for r in qb))
 if final >= 16 and qbgames < final * 0.8: problems.append(f'QB stats cover only {qbgames} of {final} final games')
@@ -81,6 +87,11 @@ out = {"season": int(year), "updatedAt": datetime.datetime.utcnow().strftime('%Y
        "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB"],
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
        "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
+# Keep the previous "updated" time when nothing else changed, so an unchanged run saves nothing.
+if prev_path and os.path.exists(prev_path):
+    old = json.load(open(prev_path)); old = old.get('data', old)
+    if {k: v for k, v in old.items() if k != 'updatedAt'} == json.loads(json.dumps({k: v for k, v in out.items() if k != 'updatedAt'})):
+        out['updatedAt'] = old.get('updatedAt', out['updatedAt']); print('No data changes since the last run.')
 json.dump(out, open('season.json', 'w'), separators=(',', ':'))
 lastwk = max([x[1] for x in g if x[6] is not None], default=0)
 pofinal = sum(1 for x in po if x[6] is not None)

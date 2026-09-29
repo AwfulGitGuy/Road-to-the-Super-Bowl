@@ -36,7 +36,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add data
-          if git diff --cached --quiet; then echo "Nothing new to save."; else git commit -m "Set up new season" && git push; fi
+          if git diff --cached --quiet; then echo "Nothing new to save."; else git commit -m "Set up new season" && git pull --rebase --quiet && git push; fi
       - name: Report a problem
         if: failure()
         env:

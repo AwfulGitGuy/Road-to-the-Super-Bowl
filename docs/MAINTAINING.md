@@ -28,6 +28,8 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 
 When a job fails, it opens an issue titled **"Data refresh failed"** or **"New-season setup failed"**, with the last lines of the error and a link to the full log, and GitHub emails you. The frequent refresh waits for **two failures in a row** before opening an issue, since single hiccups (nflverse mid-update, a slow download) fix themselves on the next run. If the same job keeps failing, it adds comments instead of new issues, and once a run succeeds it closes the issue itself with a "Fixed" note.
 
+A run also counts as failed if a game that kicked off two or more days ago still has no score. That usually means nflverse has stopped updating, or a game was postponed (in which case it clears once nflverse moves the game's date).
+
 Nothing bad is ever saved: a failed run leaves the last good data in place.
 
 If an issue stays open for more than a day or so, copy its text into a chat with Claude (or anyone who knows Python) to get it fixed.
