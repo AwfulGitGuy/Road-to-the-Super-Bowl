@@ -26,7 +26,7 @@ The page's "How the model works" section has the details.
 
 ## Data
 
-Schedules, scores, betting lines, and player stats come from the free, volunteer-run [nflverse](https://github.com/nflverse) project. The data refreshes every 30 minutes during the season, and each new season is set up automatically in late summer.
+Schedules, scores, betting lines, and player stats come from the free, volunteer-run [nflverse](https://github.com/nflverse) project. The data refreshes every 30 minutes from August through the Super Bowl, and each new season is set up automatically in late summer.
 
 This is an independent fan project with no connection to the NFL or its teams.
 
