@@ -1,13 +1,17 @@
 """Keep data/super_bowl_hosts.json filled in from Wikipedia, which has a page for each future Super Bowl
 once its site is awarded (e.g. "Super Bowl LXV").
 
-Run by the yearly new-season job (and by hand:  python scripts/sb_sites.py). It never overwrites an entry:
-it only adds seasons that are missing, and records what it checked under "_lastCheck". Any problem
-(no network, page missing, unexpected page layout) just means nothing is added.
+Run by the yearly new-season job (and by hand:  python scripts/sb_sites.py). It adds seasons that are
+missing. If Wikipedia shows a different site for an existing entry, it waits: the change is accepted only
+when Wikipedia still shows that same new site at a check at least 7 days later (vandalism rarely lasts that
+long; the job runs every Monday in August and September). What it checked is recorded under "_lastCheck",
+and a change waiting for its second check under "_pending". Any problem (no network, page missing,
+unexpected page layout) just means nothing changes.
 """
-import json, os, re, sys, urllib.parse, urllib.request
+import datetime, json, os, re, sys, urllib.parse, urllib.request
 DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 AHEAD = 6            # look this many seasons ahead
+CONFIRM_DAYS = 7     # a changed site must still be on Wikipedia this many days later
 UA = 'road-to-the-super-bowl/1.0 (https://github.com/AwfulGitGuy/Road-to-the-Super-Bowl)'
 
 def roman(n):
@@ -58,13 +62,16 @@ def hosts_for(stadium, homes):
         if k and (k == n or k in n or n in k): return sorted(teams)
     return []
 
-def update(fetch=fetch_wikitext, today_season=None):
+def update(fetch=fetch_wikitext, today_season=None, today=None):
     path = os.path.join(DATA, 'super_bowl_hosts.json')
     hosts = json.load(open(path))
     cfg = json.load(open(os.path.join(DATA, 'config.json')))
     first = today_season or cfg['current']
     homes = home_stadiums()
-    check = {'source': 'Wikipedia', 'agrees': [], 'differs': [], 'added': [], 'notYetAwarded': []}
+    today = today or datetime.date.today()
+    pending = hosts.get('_pending', {})
+    same = lambda a, b: bool(norm(a)) and (norm(a) == norm(b) or norm(a) in norm(b) or norm(b) in norm(a))
+    check = {'source': 'Wikipedia', 'agrees': [], 'updated': [], 'waiting': [], 'added': [], 'notYetAwarded': []}
     for season in range(first, first + AHEAD):
         name = f'Super Bowl {roman(season - 1965)}'
         try: st = stadium_of(fetch(name.replace(' ', '_')))
@@ -72,14 +79,24 @@ def update(fetch=fetch_wikitext, today_season=None):
         key, have = str(season), hosts.get(str(season))
         if not st: check['notYetAwarded'].append(key); continue
         if have:
-            (check['agrees'] if norm(have.get('venue')) == norm(st) or norm(have.get('venue')) in norm(st) or norm(st) in norm(have.get('venue')) else check['differs']).append(key)
-            if key in check['differs']: print(f'NOTE: {name}: list says {have.get("venue")!r}, Wikipedia says {st!r}. Leaving the list as is.')
+            if same(have.get('venue'), st):
+                check['agrees'].append(key); pending.pop(key, None); continue
+            p = pending.get(key)
+            if p and same(p.get('venue'), st) and (today - datetime.date.fromisoformat(p['since'])).days >= CONFIRM_DAYS:
+                old = have.get('venue')
+                hosts[key] = {'name': name, 'venue': st, 'hosts': hosts_for(st, homes)}
+                pending.pop(key, None); check['updated'].append(f'{key}: {old} -> {st}')
+                print(f'Updated {name}: {old!r} -> {st!r} (Wikipedia showed the change on two checks {CONFIRM_DAYS}+ days apart).')
+            else:
+                if not (p and same(p.get('venue'), st)): pending[key] = {'venue': st, 'since': today.isoformat()}
+                check['waiting'].append(key)
+                print(f'NOTE: {name}: list says {have.get("venue")!r}, Wikipedia now says {st!r}. Will accept it if it still says so in {CONFIRM_DAYS}+ days.')
             continue
         hosts[key] = {'name': name, 'venue': st, 'hosts': hosts_for(st, homes)}
         check['added'].append(key); print(f'Added {name} ({season} season): {st}, hosts {hosts[key]["hosts"] or "none (neutral)"}')
     hosts['_lastCheck'] = check
     keys = sorted((k for k in hosts if k.isdigit()), key=int)
-    ordered = {k: hosts[k] for k in ('_note',) if k in hosts} | {k: hosts[k] for k in keys} | {'_lastCheck': check}
+    ordered = {k: hosts[k] for k in ('_note',) if k in hosts} | {k: hosts[k] for k in keys} | {'_lastCheck': check} | ({'_pending': pending} if pending else {})
     text = '{\n' + ',\n'.join(f'  {json.dumps(k)}: {json.dumps(v, ensure_ascii=False)}' for k, v in ordered.items()) + '\n}\n'
     if text != open(path).read(): open(path, 'w').write(text)
     return check
