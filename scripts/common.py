@@ -6,6 +6,8 @@ DATA = os.path.join(ROOT, 'data')
 SCRIPTS = os.path.join(ROOT, 'scripts')
 GAMES_URL = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv'
 STATS_URL = 'https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{year}.csv'
+INJURIES_URL = 'https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_{year}.csv'
+ROSTERS_URL = 'https://github.com/nflverse/nflverse-data/releases/download/weekly_rosters/roster_weekly_{year}.csv'
 
 
 def download(url, dest, required=True, tries=3):
@@ -27,10 +29,25 @@ def download(url, dest, required=True, tries=3):
     sys.exit(1)
 
 
-def run(script, args, cwd):
+def try_download(url, dest):
+    """Download an optional extra file. Never stops the run: returns False (and leaves no file) on any problem."""
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as r, open(dest, 'wb') as f:
+                shutil.copyfileobj(r, f)
+            return True
+        except Exception as e:
+            err = e
+            time.sleep(5)
+    if os.path.exists(dest): os.remove(dest)
+    print(f'NOTE: could not download {url} ({err}); continuing without it.')
+    return False
+
+
+def run(script, args, cwd, env=None):
     """Run one of the scripts in scripts/ and return its output; stop if it fails."""
     p = subprocess.run([sys.executable, os.path.join(SCRIPTS, script)] + [str(a) for a in args],
-                       cwd=cwd, capture_output=True, text=True)
+                       cwd=cwd, capture_output=True, text=True, env={**os.environ, **(env or {})})
     print(p.stdout.strip())
     if p.returncode != 0:
         print(p.stderr.strip())
