@@ -1,8 +1,16 @@
-name: Daily data refresh
+name: Data refresh
 
 on:
   schedule:
-    - cron: '52 12 * * *'   # every day at 12:52 UTC (8:52 AM Eastern in fall, 7:52 AM in winter)
+    # Times are UTC. Eastern is UTC-4 until early November, then UTC-5.
+    - cron: '7 */3 * * *'            # every 3 hours, all week (catches line moves and injury news)
+    - cron: '7,37 13-23 * * 0'       # Sunday games (about 9 AM to 8 PM Eastern)
+    - cron: '7,37 0-5 * * 1'         # Sunday night game, into early Monday
+    - cron: '7,37 23 * * 1'          # Monday night kickoff (early doubleheader games)
+    - cron: '7,37 0-5 * * 2'         # Monday night game, into early Tuesday
+    - cron: '7,37 0-5 * * 5'         # Thursday night game, into early Friday
+    - cron: '7,37 17-23 * * 6'       # Saturday games (late season and playoffs)
+    - cron: '7,37 0-5 * * 0'         # Saturday night games, into early Sunday
   workflow_dispatch:         # adds a "Run workflow" button on the Actions tab
     inputs:
       test_alert:
@@ -13,6 +21,7 @@ on:
 permissions:
   contents: write            # lets the workflow save the updated data files
   issues: write              # lets it open an issue when something goes wrong
+  actions: read              # lets the alarm check whether the previous run also failed
 
 concurrency:
   group: data-updates
@@ -36,17 +45,21 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add data
-          if git diff --cached --quiet; then echo "No changes to save."; else git commit -m "Daily data refresh" && git push; fi
+          if git diff --cached --quiet; then echo "No changes to save."; else git commit -m "Data refresh" && git push; fi
       - name: Report a problem
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-          JOB: Daily data refresh
+          JOB: Data refresh
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_ID: ${{ github.run_id }}
+          WORKFLOW_FILE: daily-refresh.yml
+          ALERT_AFTER: '2'           # open an issue only after two failed runs in a row
+          TEST_ALERT: ${{ inputs.test_alert }}
         run: bash scripts/report_failure.sh
       - name: Close any open problem report
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
-          JOB: Daily data refresh
+          JOB: Data refresh
         run: bash scripts/report_success.sh

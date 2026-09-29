@@ -43,6 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           JOB: New-season setup
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ALERT_AFTER: '1'           # weekly job: report the first failure
         run: bash scripts/report_failure.sh
       - name: Close any open problem report
         if: success()
