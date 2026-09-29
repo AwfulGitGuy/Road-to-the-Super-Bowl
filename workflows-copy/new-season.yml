@@ -1,8 +1,8 @@
 name: Set up the new season
 
 on:
-  schedule:
-    - cron: '47 13 * 8,9 1'  # Mondays in August and September at 13:47 UTC (9:47 AM Eastern)
+  # Started by an outside timer (cron-job.org) on Mondays at 9:47 AM Eastern in August and September.
+  # See docs/MAINTAINING.md.
   workflow_dispatch:
     inputs:
       test_alert:
