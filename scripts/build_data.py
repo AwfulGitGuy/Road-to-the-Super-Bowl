@@ -64,7 +64,7 @@ if os.path.exists(qbsrc) and os.path.getsize(qbsrc) > 1000:
         names.setdefault(r['player_id'], clean_name(r['player_display_name']))
 problems = bad[:5]
 if len(g) != expected: problems.append(f'expected {expected} games, found {len(g)}')
-tomorrow = (datetime.datetime.utcnow() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+tomorrow = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
 for x in g:
     a, h = x[6], x[7]
     if (a is None) != (h is None): problems.append(f'{x[0]}: only one team has a score')
@@ -73,7 +73,7 @@ for x in g:
         if x[2] > tomorrow: problems.append(f'{x[0]}: marked final before its date {x[2]}')
 # Stale-data check: a game from the last few weeks that kicked off 2+ days ago should have its score by now.
 # (Older games are left alone, so rebuilding a past season with a cancelled game still works.)
-now = datetime.datetime.utcnow()
+now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 recent_lo, stale_hi = (now - datetime.timedelta(days=30)).strftime('%Y-%m-%d'), (now - datetime.timedelta(days=2)).strftime('%Y-%m-%d')
 stale = [x[0] for x in g + po if x[6] is None and recent_lo <= x[2] <= stale_hi]
 if stale: problems.append(f'{len(stale)} game(s) played 2+ days ago still have no score (e.g. {stale[0]}); nflverse may have stopped updating, or a game was postponed')
@@ -91,7 +91,7 @@ if prev_path and os.path.exists(prev_path):
     if changed: print(f'NOTE: {len(changed)} final score(s) were corrected upstream, e.g. {changed[0]} {pf[changed[0]]} -> {cur[changed[0]]}')
 if problems:
     print('CHECKS FAILED — do not save:'); [print(' -', p) for p in problems[:10]]; sys.exit(1)
-out = {"season": int(year), "updatedAt": datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%MZ'),
+out = {"season": int(year), "updatedAt": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%dT%H:%MZ'),
        "source": f"nflverse/nfldata games.csv + nflverse stats_player_week_{year}.csv",
        "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB", "stadium"],
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,

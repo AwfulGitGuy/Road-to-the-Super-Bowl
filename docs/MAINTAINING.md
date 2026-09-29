@@ -57,6 +57,22 @@ The Super Bowl's host team gets half the usual home-field edge if it reaches the
 
 It's also worth a glance at the **Actions** tab in mid-August: there should be a "Set up the new season" run from each Monday. If there isn't, check the cron-job.org account (an expired key is the likely cause).
 
+## If something breaks (for you, or whoever helps you)
+
+Everything needed to understand and fix the site is in this repository: the page's source in `src/`, the data jobs in `scripts/`, the schedules in `.github/workflows/`, and these notes. A new Claude session (or anyone who knows Python) can start by reading this file and `README.md`; no earlier chat is needed. A failure issue's text, pasted into that conversation, is usually enough to find the cause.
+
+Likely failures, most likely first:
+
+| What you'll see | Likely cause | Fix |
+| --- | --- | --- |
+| cron-job.org emails that calls fail with **401** | The key expired (July 1, 2027) or was deleted | Make a new key (see "The key expires…" above) and paste it into both cron-job.org jobs |
+| No new "Data refresh" runs in the Actions tab, and no emails | The cron-job.org jobs were paused or the account lapsed | Log in to cron-job.org and turn the jobs back on |
+| A "Data refresh failed" issue mentioning a download | nflverse is down or moved a file | Usually fixes itself; if it lasts more than a day, check nflverse's GitHub for announcements |
+| A "Data refresh failed" issue listing failed checks (unknown team, game count, missing scores) | nflverse changed its data, or a game was postponed | Read the listed problem; a postponed game clears once nflverse moves its date |
+| A failure in "Set up Python" or a Python error after GitHub updates its servers | A newer Python changed something | The jobs use the newest Python 3 on purpose; the error message shows the line to fix |
+
+To test changes on your own computer, see "Running it on your own computer" below.
+
 ## If the NFL changes its format
 
 If the league changes the number of teams or games, the divisions, or the playoff structure, the new-season job stops and reports it rather than saving anything wrong. The page and scripts will need an update at that point.
