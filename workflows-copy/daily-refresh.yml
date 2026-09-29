@@ -1,7 +1,7 @@
 name: Data refresh
 
 on:
-  # Started by an outside timer (cron-job.org) at :07 and :37 past every hour, September-February, Eastern time.
+  # Started by an outside timer (cron-job.org) at :07 and :37 past every hour, August-February, Eastern time.
   # GitHub's own schedules were removed: they started runs hours late, and GitHub switches them off after
   # 60 days without repository activity. See docs/MAINTAINING.md.
   workflow_dispatch:         # adds a "Run workflow" button on the Actions tab
