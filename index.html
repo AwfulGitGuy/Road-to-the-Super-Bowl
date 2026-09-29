@@ -435,7 +435,7 @@ td.team .chip{margin-right:8px}
     <div><h3>1 · Rate every team</h3><p>Each team gets a rating in points, fitted to the betting-market point spreads on every game that has one. Recent weeks count more (each older week weighs 0.7× the next). The starting quarterback is split out: each QB has a value from his efficiency per play (EPA) over recent seasons, and the market lines set how many points that is worth. A backup starting only lowers a team for the games he starts. A rating of +3 means a 3-point favorite over an average team on a neutral field. Home field is fitted too, currently <b id="hfa" class="num">…</b> points.</p></div>
     <div><h3>2 · Turn ratings into win chances</h3><p>A point gap becomes a win chance using a curve fitted to every game from 2002 to 2017 and checked on 2018 to 2025. A team favored by 3 points wins about 60% of the time, and a 7-point favorite about 73%. Games with a posted line use the market line directly.</p></div>
     <div><h3>3 · Play the season 10,000 times</h3><p>Every remaining game is played at random using those chances. Each run also lets every team's strength drift up or down week by week, because injuries happen and teams change over a season. The drift is sized from how much betting-market ratings have actually moved in past seasons. Games with this week's lines get no drift, and games far off get the most (up to about <b id="shock" class="num">…</b> points by season's end). Tested by replaying 2006 to 2025 from Weeks 3, 8 and 12.</p></div>
-    <div><h3>4 · Seed and play the playoffs</h3><p>Each run builds the standings, breaks ties with the NFL's tiebreakers (head-to-head, division record, common games, conference record, strength of victory and schedule), seeds 7 teams per conference, and plays out every round. Run on the final standings of every season from 2002 to 2025, this seeding code reproduces all 48 real conference brackets exactly. Super Bowl LXI is at SoFi Stadium, so the Rams or Chargers get half the usual home-field edge if they reach it. The percentages are how often each outcome happened.</p></div>
+    <div><h3>4 · Seed and play the playoffs</h3><p>Each run builds the standings, breaks ties with the NFL's tiebreakers (head-to-head, division record, common games, conference record, strength of victory and schedule), seeds 7 teams per conference, and plays out every round. Run on the final standings of every season from 2002 to 2025, this seeding code reproduces all 48 real conference brackets exactly. <span id="sbsite"></span> The percentages are how often each outcome happened.</p></div>
     <div><h3>What it leaves out</h3><p>The model can't know how long a particular injury will last. When a team's regular starter is out or doubtful, it plays his backup next week and then gives the starter a growing chance of being back each week, based on how often injured starters returned from 2012 to 2025 (faster after concussions). Starters on injured reserve are assumed to stay out, and a benched starter is assumed to stay benched. Use the Starting QB menu in the team panel to test any other scenario. Injuries at other positions count only once the betting market reacts to them. Tied games aren't simulated (they're under 1% of games). The rare points-based tiebreakers that come after strength of schedule are settled by coin flip, which happens in fewer than 1 in 1,000 simulated seasons.</p></div>
     <div><h3>Two ratings</h3><p>The playoff odds use the market rating. The comparison section uses our own score-only rating, which lost to the market in every test season. It is there to show why the market makes the better foundation.</p></div>
     <div><h3>Updates</h3><p>Scores, betting lines and starting quarterbacks come from the free <a href="https://github.com/nflverse">nflverse</a> project. They refresh every 30 minutes from August through the Super Bowl. An open page checks for new data every 30 minutes and re-runs itself when it arrives.</p></div>
@@ -1583,6 +1583,12 @@ function renderAll() {
   $('#asof').textContent = sbDone ? `${YEAR} season · final` : (isFinal() ? 'Regular season complete' : `Through Week ${r.lastPlayedWeek}`) + (upd ? ` · updated ${upd}` : '');
   document.querySelectorAll('.sbname').forEach(el => { el.textContent = sbName; });
   $('#foot-upd').textContent = upd ? ` Data last updated ${upd}.` : '';
+  { const sb = PRI.sb || CFG.sb || {}, site = season.sbSite || null, venueName = (site && site.stadium) || sb.venue || '', hs = sbHosts();
+    const who = hs.map(t => 'the ' + M.NAMES[t]).join(' or ');
+    const past = poGames().some(g => g.round === 4 && poWinner(g));
+    $('#sbsite').textContent = !venueName ? '' : past
+      ? `${sb.name || 'The Super Bowl'} was played at ${venueName}${hs.length ? `, home of ${who}.` : ', a neutral site.'}`
+      : `${sb.name || 'The Super Bowl'} is at ${venueName}${hs.length ? `, so ${who} would get half the usual home-field edge if they reach it.` : ', a neutral site for every team.'}`; }
   $('#hfa').textContent = r.hfa.toFixed(1);
   $('#shock').textContent = '±' + r.shockSD.toFixed(0);
   renderOverview(); renderFocus(); renderTable(); renderWhatIf(); renderVs(); renderBracket(); renderProjected();
@@ -2178,7 +2184,7 @@ function validPriors(p) {
   try {
     return !!p && Object.values(p.market || {}).every(okNum) && Object.values(p.perf || {}).every(okNum) &&
       Object.entries(p.qb || {}).every(([k, v]) => RX.pid.test(k) && Array.isArray(v) && v.every(okNum)) &&
-      (!p.sb || ((p.sb.hosts || []).every(t => M.TEAMS.includes(t)) && typeof (p.sb.name || '') === 'string'));
+      (!p.sb || ((p.sb.hosts || []).every(t => M.TEAMS.includes(t)) && typeof (p.sb.name || '') === 'string' && /^[A-Za-z0-9 &'.-]{0,60}$/.test(p.sb.venue || '')));
   } catch (e) { return false; }
 }
 function validConfig(c) {

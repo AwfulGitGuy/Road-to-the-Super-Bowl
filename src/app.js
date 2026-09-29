@@ -170,6 +170,12 @@ function renderAll() {
   $('#asof').textContent = sbDone ? `${YEAR} season · final` : (isFinal() ? 'Regular season complete' : `Through Week ${r.lastPlayedWeek}`) + (upd ? ` · updated ${upd}` : '');
   document.querySelectorAll('.sbname').forEach(el => { el.textContent = sbName; });
   $('#foot-upd').textContent = upd ? ` Data last updated ${upd}.` : '';
+  { const sb = PRI.sb || CFG.sb || {}, site = season.sbSite || null, venueName = (site && site.stadium) || sb.venue || '', hs = sbHosts();
+    const who = hs.map(t => 'the ' + M.NAMES[t]).join(' or ');
+    const past = poGames().some(g => g.round === 4 && poWinner(g));
+    $('#sbsite').textContent = !venueName ? '' : past
+      ? `${sb.name || 'The Super Bowl'} was played at ${venueName}${hs.length ? `, home of ${who}.` : ', a neutral site.'}`
+      : `${sb.name || 'The Super Bowl'} is at ${venueName}${hs.length ? `, so ${who} would get half the usual home-field edge if they reach it.` : ', a neutral site for every team.'}`; }
   $('#hfa').textContent = r.hfa.toFixed(1);
   $('#shock').textContent = '±' + r.shockSD.toFixed(0);
   renderOverview(); renderFocus(); renderTable(); renderWhatIf(); renderVs(); renderBracket(); renderProjected();
@@ -765,7 +771,7 @@ function validPriors(p) {
   try {
     return !!p && Object.values(p.market || {}).every(okNum) && Object.values(p.perf || {}).every(okNum) &&
       Object.entries(p.qb || {}).every(([k, v]) => RX.pid.test(k) && Array.isArray(v) && v.every(okNum)) &&
-      (!p.sb || ((p.sb.hosts || []).every(t => M.TEAMS.includes(t)) && typeof (p.sb.name || '') === 'string'));
+      (!p.sb || ((p.sb.hosts || []).every(t => M.TEAMS.includes(t)) && typeof (p.sb.name || '') === 'string' && /^[A-Za-z0-9 &'.-]{0,60}$/.test(p.sb.venue || '')));
   } catch (e) { return false; }
 }
 function validConfig(c) {
