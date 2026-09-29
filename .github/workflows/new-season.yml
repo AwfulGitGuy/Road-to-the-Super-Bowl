@@ -2,7 +2,7 @@ name: Set up the new season
 
 on:
   schedule:
-    - cron: '47 13 * 8,9 1'  # Mondays in August and September at 13:47 UTC (9:47 AM Eastern)
+    - cron: '47 13 * 8,9 1'  # Mondays, in August and September at 13:47 UTC (9:47 AM Eastern)
   workflow_dispatch:
     inputs:
       test_alert:
