@@ -87,6 +87,61 @@ out = {"season": int(year), "updatedAt": datetime.datetime.utcnow().strftime('%Y
        "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB"],
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
        "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
+# Injured regular starters. A team's regular starter is the QB with the most starts in its last 8 games of
+# last season plus this season's final games. If someone else is listed to start next and the regular is
+# Out or Doubtful on the injury report (or on injured reserve), the page blends in his chance of returning.
+# Tested on 2012-2025 (see docs/MAINTAINING.md). Optional: any problem here leaves the list empty.
+INJ_OK = re.compile(r'^[A-Za-z /,.()-]{0,40}$')
+def qb_out():
+    inj_path, ros_path, prev_season = os.environ.get('QB_INJURIES'), os.environ.get('QB_ROSTERS'), os.environ.get('PREV_SEASON')
+    if not inj_path or not os.path.exists(inj_path): return {}
+    start = {}
+    for x in g:
+        if x[10]: start[(x[4], x[1])] = x[10]
+        if x[11]: start[(x[5], x[1])] = x[11]
+    final_weeks = {(x[4], x[1]) for x in g if x[6] is not None} | {(x[5], x[1]) for x in g if x[6] is not None}
+    prev_starts = {}
+    if prev_season and os.path.exists(prev_season):
+        ps = json.load(open(prev_season)); ps = ps.get('data', ps)
+        for x in sorted(ps.get('games', []), key=lambda r: r[1]):
+            for t, q in ((x[4], x[10]), (x[5], x[11])):
+                if q: prev_starts.setdefault(t, []).append(q)
+    inj = {}
+    for r in csv.DictReader(open(inj_path)):
+        if r.get('position') == 'QB' and r.get('season') == year and str(r.get('week', '')).isdigit() and r.get('season_type', 'REG') == 'REG':
+            inj[(int(r['week']), r['gsis_id'])] = (r.get('report_status') or '', r.get('report_primary_injury') or '')
+    ros = {}
+    if ros_path and os.path.exists(ros_path):
+        for r in csv.DictReader(open(ros_path)):
+            if r.get('position') == 'QB' and r.get('season') == year and str(r.get('week', '')).isdigit():
+                ros[(int(r['week']), r['gsis_id'])] = r.get('status') or ''
+    out = {}
+    for t in sorted(TEAMS):
+        listed = sorted(w for (tt, w) in start if tt == t)
+        if not listed: continue
+        nxt = listed[-1]; cur = start[(t, nxt)]
+        cnt, order = {}, {}
+        for q in prev_starts.get(t, [])[-8:]: cnt[q] = cnt.get(q, 0) + 1
+        for i, w in enumerate(listed):
+            if (t, w) in final_weeks: cnt[start[(t, w)]] = cnt.get(start[(t, w)], 0) + 1; order[start[(t, w)]] = i
+        if not cnt: continue
+        reg = max(cnt, key=lambda q: (cnt[q], order.get(q, -1)))
+        if reg == cur or not PLAYER_ID.match(reg): continue
+        wk = nxt if (t, nxt) not in final_weeks else nxt + 1
+        rs = ros.get((wk, reg)) or ros.get((wk - 1, reg)) or ''
+        rep = inj.get((wk, reg)) or inj.get((wk - 1, reg)) or ('', '')
+        if rs == 'RES': cls, status = 'ir', 'Injured reserve'
+        elif rep[0] in ('Out', 'Doubtful') or (rs == 'INA' and rep[0]):
+            s_ = rep[1].lower(); cls = 'head' if ('concussion' in s_ or 'head' in s_) else 'other'; status = rep[0] or 'Inactive'
+        else: continue                       # not hurt: a benching or trade, so the new starter is assumed to stay
+        injury = rep[1] if INJ_OK.match(rep[1] or '') else ''
+        out[t] = {'qb': reg, 'cls': cls, 'status': status, 'injury': injury}
+    return out
+try:
+    out['qbOut'] = qb_out()
+    if out['qbOut']: print('Injured regular starters:', ', '.join(f"{t} {names.get(o['qb']) or o['qb']} ({o['status']}{', ' + o['injury'] if o['injury'] else ''})" for t, o in out['qbOut'].items()))
+except Exception as e:
+    out['qbOut'] = {}; print(f'NOTE: skipped the injured-starter check ({e}).')
 # Keep the previous "updated" time when nothing else changed, so an unchanged run saves nothing.
 if prev_path and os.path.exists(prev_path):
     old = json.load(open(prev_path)); old = old.get('data', old)

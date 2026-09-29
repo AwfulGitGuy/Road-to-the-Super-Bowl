@@ -15,7 +15,7 @@ An NFL season simulator. It plays out the rest of the season 10,000 times to est
 ## How it works
 
 1. **Team ratings** come from betting-market point spreads, which are the most accurate public forecasts of NFL games. Recent weeks count more, and each season starts from the previous season's ratings, pulled partway back toward average.
-2. **Quarterbacks are rated separately,** from their recent efficiency per play, so a backup starting only affects the games he starts.
+2. **Quarterbacks are rated separately,** from their recent efficiency per play, so a backup starting only affects the games he starts. When a team's regular starter is hurt, later games give him a growing chance of being back, based on how often injured starters returned in 2012–2025.
 3. **Every remaining game is simulated** from those ratings, with team strength allowed to drift more the further out a game is. The NFL's tiebreakers decide seeding, and the playoffs are played out (using real results once playoff games are final).
 4. **The settings were tested on past seasons,** tuned on 2002–2017 and checked on 2018–2025. The page also shows a score-only rating built without betting lines, and how it compared with the market over those seasons.
 
