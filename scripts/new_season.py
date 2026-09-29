@@ -9,6 +9,13 @@ Run from anywhere:  python scripts/new_season.py
 import csv, json, os, shutil
 from common import DATA, GAMES_URL, STATS_URL, download, load, run, workdir
 
+# First, extend the Super Bowl site list from Wikipedia (adds newly awarded sites; never overwrites). Optional.
+try:
+    import sb_sites
+    print('Super Bowl sites:', sb_sites.update())
+except Exception as e:
+    print(f'NOTE: skipped the Super Bowl site check ({e}).')
+
 cfg = load('config.json')
 prev_year = cfg['current']; year = prev_year + 1
 tmp = workdir()
