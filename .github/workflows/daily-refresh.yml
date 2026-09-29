@@ -2,7 +2,7 @@ name: Data refresh
 
 on:
   schedule:
-    # Times are UTC. Eastern is UTC-4 until early November, then UTC-5.
+    # Times are formatted as UTC. Eastern is UTC-4 until early November, then UTC-5.
     - cron: '7 */3 * * *'            # every 3 hours, all week (catches line moves and injury news)
     - cron: '45 9,10 * * *'          # just before 6 AM Eastern year-round (9:45 UTC in summer/fall, 10:45 in winter)
     - cron: '7,37 13-23 * * 0'       # Sunday games (about 9 AM to 8 PM Eastern)
