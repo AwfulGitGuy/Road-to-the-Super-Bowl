@@ -212,9 +212,9 @@ td.team .tlink:hover .nm{text-decoration:underline}
     <h2 id="ov-h">Around the league</h2>
   </div>
   <div class="ov-grid">
-    <div class="ov-card"><h3>Super Bowl favorites</h3><ol class="ov-list" id="ov-sb"><li class="status">Calculating…</li></ol></div>
-    <div class="ov-card"><h3>Division favorites</h3><div class="ov-divs" id="ov-div"><p class="status">Calculating…</p></div></div>
-    <div class="ov-card"><h3>Biggest moves this week</h3><p class="k-note">Change in playoff chances since the week before.</p><div id="ov-move"><p class="status">Calculating…</p></div></div>
+    <div class="ov-card"><h3>Super Bowl favorites</h3><p class="k-note">Record so far, and each team's chance of winning the Super Bowl.</p><ol class="ov-list" id="ov-sb"><li class="status">Calculating…</li></ol></div>
+    <div class="ov-card"><h3>Division favorites</h3><p class="k-note">The team most likely to win each division, and its chance.</p><div class="ov-divs" id="ov-div"><p class="status">Calculating…</p></div></div>
+    <div class="ov-card"><h3>Biggest moves this week</h3><p class="k-note">Change in each team's chance of making the playoffs since last week, in percentage points.</p><div id="ov-move"><p class="status">Calculating…</p></div></div>
   </div>
 </section>
 
@@ -1564,7 +1564,7 @@ function renderOverview() {
   sec.hidden = false;
   const T = cur.teams;
   const top = T.slice().sort((a, b) => b.sbWin - a.sbWin).slice(0, 6), mx = top[0].sbWin || 1;
-  $('#ov-sb').innerHTML = top.map((t, i) => `<li><span class="rk">${i + 1}</span><div>${tl(t.abbr)} <span class="dim">${rec(t)}</span><div class="bar"><i style="width:${(t.sbWin / mx * 100).toFixed(1)}%"></i></div></div><span class="pv">${pct(t.sbWin, true)}</span></li>`).join('');
+  $('#ov-sb').innerHTML = top.map((t, i) => `<li title="${esc(M.NAMES[t.abbr])}: ${pct(t.sbWin, true)} chance to win the Super Bowl"><span class="rk">${i + 1}</span><div>${tl(t.abbr)} <span class="dim">${rec(t)}</span><div class="bar"><i style="width:${(t.sbWin / mx * 100).toFixed(1)}%"></i></div></div><span class="pv">${pct(t.sbWin, true)}</span></li>`).join('');
   $('#ov-div').innerHTML = Object.keys(M.DIV).map(d => { const t = T.filter(x => x.div === d).sort((a, b) => b.divWin - a.divWin)[0];
     return `<div class="d"><span class="dn">${d}</span>${tl(t.abbr)} <span class="pv">${pct(t.divWin)}</span></div>`; }).join('');
   const mvEl = $('#ov-move');
