@@ -35,3 +35,14 @@ args = [year, 'games.csv', 'qb.csv', games] + ([prev] if os.path.exists(prev) el
 run('build_data.py', args, cwd=tmp, env=env)
 shutil.copy(os.path.join(tmp, 'season.json'), prev)
 print(f'Saved data/season-{year}.json')
+
+# The "who to root for" file (data/rooting-YEAR.json). Optional: if this step fails, the data update above
+# still stands and the page simply hides that panel.
+import subprocess
+for label, cmd in (('rooting guide', ['node', os.path.join(os.path.dirname(__file__), 'rooting.js')]),):
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        print(p.stdout.strip() or p.stderr.strip())
+        if p.returncode != 0: print(f'NOTE: the {label} step failed; continuing without it.')
+    except Exception as e:
+        print(f'NOTE: skipped the {label} step ({e}).')

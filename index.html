@@ -275,6 +275,21 @@ td.team .chip{margin-right:8px}
 .watchlist b{color:var(--ink)}
 .seg button[disabled]{opacity:.45;cursor:default}
 @media (max-width:640px){.pick button .t,.res .side .t{font-size:14.5px;gap:5px}.pick button,.res .side{padding:5px 6px}.pick button .p{font-size:12px}.pick,.res{gap:4px}}
+/* who to root for */
+.rootbox{grid-column:1/-1;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.rootbox h3{margin:0}
+.rootbox .k-note{font-size:13px;color:var(--ink-2)}
+.rootlist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:8px}
+.rootlist li{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.rootlist .rt{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rootlist .who{font-family:var(--display);font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rootlist .who .ov{font-family:var(--body);font-size:13px;font-weight:400;color:var(--ink-2)}
+.rootlist .gain{font-variant-numeric:tabular-nums;font-weight:700;color:var(--good);white-space:nowrap}
+.rootlist .det{font-size:12px;color:var(--ink-3)}
+.seedline{margin:0 0 8px;font-size:12.5px;color:var(--ink-2)}
+/* projected bracket */
+.po-game .sc.pr{font-weight:500;color:var(--ink-2);font-size:13px}
+.po-game .row.win .sc.pr{color:var(--ink);font-weight:700}
 </style>
 
 </head>
@@ -296,6 +311,7 @@ td.team .chip{margin-right:8px}
   <button type="button" data-jump="po-sec">Playoffs</button>
   <button type="button" data-jump="focus-sec" id="nav-team">Your team</button>
   <button type="button" data-jump="table-sec">All teams</button>
+  <button type="button" data-jump="proj-sec">Bracket</button>
   <button type="button" data-jump="sched-sec">Schedule</button>
   <button type="button" data-jump="how-sec">How it works</button>
 </nav>
@@ -341,6 +357,7 @@ td.team .chip{margin-right:8px}
         <div class="chartbox" id="seeddist"></div>
       </div>
     </div>
+    <div class="rootbox" id="rootbox" hidden></div>
   </div>
 </section>
 
@@ -367,6 +384,15 @@ td.team .chip{margin-right:8px}
   </div>
   <p class="note">Grouped by division. Tap a column heading to rank by it, or Team to go back to divisions. Darker shading means more likely.</p>
   <div class="tablebox"><table id="odds"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<section aria-labelledby="proj-h" id="proj-sec" hidden>
+  <div class="sec-head">
+    <h2 id="proj-h">Projected playoff bracket</h2>
+  </div>
+  <p class="note">The likeliest playoff field, with the favorite advancing from every game. Each division goes to its likeliest winner and the wild cards to the three likeliest other teams, seeded by projected wins. The percentage by each team is its chance of winning that game. This exact bracket is unlikely: it's a guide to the most likely matchups, not a prediction that all of them happen.</p>
+  <div class="champ" id="proj-champ"></div>
+  <div class="po-grid" id="proj-grid"></div>
 </section>
 
 <section aria-labelledby="sched-h" id="sched-sec">
@@ -685,7 +711,10 @@ const NFLModel = (() => {
   function simulate(season, opts = {}) {
     const sims = opts.sims || 10000;
     const picks = opts.picks || {};   // gameId -> team abbr forced winner
-    const rand = rng(opts.seed || 20260928);
+    // Each simulated season gets its own random streams (games, tiebreak coin flips, playoffs), so a change in one
+    // season or one game never shifts the random draws of any other. That keeps paired comparisons exact.
+    const seed0 = (opts.seed || 20260928) >>> 0;
+    let rand = rng(seed0), rT = rand, rP = rand;
     const games = parse(season);
     const useQB = opts.qb !== false && Array.isArray(season.qbGames);
     const qs = useQB ? qbState(season, games, opts.qbPrior) : null;
@@ -729,6 +758,11 @@ const NFLModel = (() => {
     const shockSD = legacy ? Math.sqrt(1.5 * 1.5 + 2.5 * 2.5 * weeksLeft / 18) : Math.sqrt(D0 + DW * weeksLeft);
 
     const fixed = done.map(g => ({ a: g.a, h: g.h, w: g.hs > g.as ? g.h : g.as > g.hs ? g.a : -1 }));
+    // "Who to root for": for chosen games, count how often the tracked team reaches each goal after each result.
+    const trk = opts.track && IDX[opts.track.team] !== undefined ? opts.track : null;
+    const tT = trk ? IDX[trk.team] : -1, tIdx = new Map(), tHome = [];
+    if (trk) (trk.games || []).forEach(id => { const g = left.find(x => x.id === id); if (g && picks[id] === undefined) { tIdx.set(id, tHome.length); tHome.push(g); } });
+    const tk = tHome.length, tW = new Uint8Array(tk), T = { hw: new Float64Array(tk), goal: ['playoff', 'div', 'bye'].map(() => ({ h: new Float64Array(tk), a: new Float64Array(tk) })) };
 
     const gpt = new Array(N).fill(0); for (const g of games) { gpt[g.h]++; gpt[g.a]++; }
     const maxG = Math.max(17, ...gpt);
@@ -758,7 +792,11 @@ const NFLModel = (() => {
     const walkWeeks = Math.max(1, lastWeek + 1 - L);
     const walk = Array.from({ length: N }, () => new Float64Array(walkWeeks + 1));
 
+    let tMade = [false, false, false];
     for (let s = 0; s < sims; s++) {
+      rand = rng((seed0 ^ Math.imul(s + 1, 0x9E3779B1)) >>> 0);
+      rT = rng(((seed0 + 0x7F4A7C15) ^ Math.imul(s + 1, 0x85EBCA6B)) >>> 0);
+      rP = rng(((seed0 + 0x2545F491) ^ Math.imul(s + 1, 0xC2B2AE35)) >>> 0);
       const shock = new Float64Array(N);
       if (legacy) for (let i = 0; i < N; i++) shock[i] = gauss(rand) * shockSD;
       else {
@@ -774,7 +812,7 @@ const NFLModel = (() => {
       for (const g of left) {
         let w;
         const forced = picks[g.id];
-        if (forced !== undefined) w = IDX[forced];
+        if (forced !== undefined) { w = IDX[forced]; rand(); }   // draw anyway, so a pick changes only this game (paired comparisons)
         else {
           const lined = g.spread !== null && g.spread !== undefined;
           const base = lined ? g.spread : fit.r[g.h] - fit.r[g.a] + (g.neutral ? 0 : fit.hfa) + g.qadj;
@@ -782,13 +820,15 @@ const NFLModel = (() => {
           w = rand() < p ? g.h : g.a;
         }
         res.push({ a: g.a, h: g.h, w });
+        if (tk) { const k = tIdx.get(g.id); if (k !== undefined) tW[k] = w === g.h ? 1 : 0; }
         if (w === g.h) gameWin.set(g.id, (gameWin.get(g.id) || 0) + 1);
       }
       const st = makeStandings(res);
       for (let i = 0; i < N; i++) { acc.wins[i] += st.W[i]; acc.winDist[i][Math.min(maxG, Math.round(st.W[i]))]++; }
       const champs = {};
       for (const conf of ['AFC', 'NFC']) {
-        const { seeds, divWinners } = seedConference(st, conf, rand);
+        const { seeds, divWinners } = seedConference(st, conf, rT);
+        if (tk && confOf[tT] === conf) { tMade = [seeds.includes(tT), divWinners.includes(tT), seeds[0] === tT]; }
         seeds.forEach((t, k) => { acc.playoff[t]++; acc.seed[t][k + 1]++; });
         divWinners.forEach(t => acc.div[t]++);
         acc.bye[seeds[0]]++;
@@ -798,7 +838,7 @@ const NFLModel = (() => {
           const real = poWin.get(Math.min(hi, lo) * 64 + Math.max(hi, lo));   // already played for real
           if (real !== undefined) return real;
           const p = Phi((str(hi) - str(lo) + (neutral ? 0 : fit.hfa)) / sd);
-          return rand() < p ? hi : lo;
+          return rP() < p ? hi : lo;
         };
         const seedOf = t => seeds.indexOf(t);
         let alive = [seeds[0], play(seeds[1], seeds[6]), play(seeds[2], seeds[5]), play(seeds[3], seeds[4])];
@@ -812,8 +852,9 @@ const NFLModel = (() => {
       const hosts = opts.sbHosts || [];                                   // teams whose home stadium hosts the Super Bowl
       const sofi = (hosts.includes(TEAMS[champs.AFC]) ? fit.hfa / 2 : 0) - (hosts.includes(TEAMS[champs.NFC]) ? fit.hfa / 2 : 0);
       const realSB = poWin.get(Math.min(champs.AFC, champs.NFC) * 64 + Math.max(champs.AFC, champs.NFC));
-      const winner = realSB !== undefined ? realSB : Phi((fit.r[champs.AFC] + shock[champs.AFC] + qbvPO(champs.AFC) - fit.r[champs.NFC] - shock[champs.NFC] - qbvPO(champs.NFC) + sofi) / sd) > rand() ? champs.AFC : champs.NFC;
+      const winner = realSB !== undefined ? realSB : Phi((fit.r[champs.AFC] + shock[champs.AFC] + qbvPO(champs.AFC) - fit.r[champs.NFC] - shock[champs.NFC] - qbvPO(champs.NFC) + sofi) / sd) > rP() ? champs.AFC : champs.NFC;
       acc.sb[winner]++;
+      if (tk) for (let k = 0; k < tk; k++) { const hw = tW[k]; T.hw[k] += hw; for (let q = 0; q < 3; q++) if (tMade[q]) T.goal[q][hw ? 'h' : 'a'][k]++; }
     }
 
     const st = makeStandings(fixed);
@@ -839,7 +880,12 @@ const NFLModel = (() => {
       return [...seen.keys()].map(id => ({ id, name: qs.names[id] || id, pts: qs.now(id), recent: id === qs.recent[t] }));
     }
     const results = done.map(g => ({ id: g.id, week: g.week, date: g.date, away: TEAMS[g.a], home: TEAMS[g.h], as: g.as, hs: g.hs }));
-    return { teams, upcoming, results, maxGames: maxG, hfa: fit.hfa, ratingWeek: fit.latest, lastPlayedWeek, sims, shockSD };
+    const track = tk ? tHome.map((g, k) => {
+      const nh = T.hw[k], na = sims - nh, f = (x, n) => (n ? x / n : null);
+      return { id: g.id, week: g.week, date: g.date, time: g.time, away: TEAMS[g.a], home: TEAMS[g.h], neutral: g.neutral, pHome: nh / sims,
+        ifHome: T.goal.map(q => f(q.h[k], nh)), ifAway: T.goal.map(q => f(q.a[k], na)) };
+    }) : null;
+    return { teams, upcoming, results, maxGames: maxG, hfa: fit.hfa, ratingWeek: fit.latest, lastPlayedWeek, sims, shockSD, track, sd };
   }
 
   // Seed a finished season from its results (for checking tiebreakers against real brackets)
@@ -1122,7 +1168,10 @@ const NFLModel = (() => {
   function simulate(season, opts = {}) {
     const sims = opts.sims || 10000;
     const picks = opts.picks || {};   // gameId -> team abbr forced winner
-    const rand = rng(opts.seed || 20260928);
+    // Each simulated season gets its own random streams (games, tiebreak coin flips, playoffs), so a change in one
+    // season or one game never shifts the random draws of any other. That keeps paired comparisons exact.
+    const seed0 = (opts.seed || 20260928) >>> 0;
+    let rand = rng(seed0), rT = rand, rP = rand;
     const games = parse(season);
     const useQB = opts.qb !== false && Array.isArray(season.qbGames);
     const qs = useQB ? qbState(season, games, opts.qbPrior) : null;
@@ -1166,6 +1215,11 @@ const NFLModel = (() => {
     const shockSD = legacy ? Math.sqrt(1.5 * 1.5 + 2.5 * 2.5 * weeksLeft / 18) : Math.sqrt(D0 + DW * weeksLeft);
 
     const fixed = done.map(g => ({ a: g.a, h: g.h, w: g.hs > g.as ? g.h : g.as > g.hs ? g.a : -1 }));
+    // "Who to root for": for chosen games, count how often the tracked team reaches each goal after each result.
+    const trk = opts.track && IDX[opts.track.team] !== undefined ? opts.track : null;
+    const tT = trk ? IDX[trk.team] : -1, tIdx = new Map(), tHome = [];
+    if (trk) (trk.games || []).forEach(id => { const g = left.find(x => x.id === id); if (g && picks[id] === undefined) { tIdx.set(id, tHome.length); tHome.push(g); } });
+    const tk = tHome.length, tW = new Uint8Array(tk), T = { hw: new Float64Array(tk), goal: ['playoff', 'div', 'bye'].map(() => ({ h: new Float64Array(tk), a: new Float64Array(tk) })) };
 
     const gpt = new Array(N).fill(0); for (const g of games) { gpt[g.h]++; gpt[g.a]++; }
     const maxG = Math.max(17, ...gpt);
@@ -1195,7 +1249,11 @@ const NFLModel = (() => {
     const walkWeeks = Math.max(1, lastWeek + 1 - L);
     const walk = Array.from({ length: N }, () => new Float64Array(walkWeeks + 1));
 
+    let tMade = [false, false, false];
     for (let s = 0; s < sims; s++) {
+      rand = rng((seed0 ^ Math.imul(s + 1, 0x9E3779B1)) >>> 0);
+      rT = rng(((seed0 + 0x7F4A7C15) ^ Math.imul(s + 1, 0x85EBCA6B)) >>> 0);
+      rP = rng(((seed0 + 0x2545F491) ^ Math.imul(s + 1, 0xC2B2AE35)) >>> 0);
       const shock = new Float64Array(N);
       if (legacy) for (let i = 0; i < N; i++) shock[i] = gauss(rand) * shockSD;
       else {
@@ -1211,7 +1269,7 @@ const NFLModel = (() => {
       for (const g of left) {
         let w;
         const forced = picks[g.id];
-        if (forced !== undefined) w = IDX[forced];
+        if (forced !== undefined) { w = IDX[forced]; rand(); }   // draw anyway, so a pick changes only this game (paired comparisons)
         else {
           const lined = g.spread !== null && g.spread !== undefined;
           const base = lined ? g.spread : fit.r[g.h] - fit.r[g.a] + (g.neutral ? 0 : fit.hfa) + g.qadj;
@@ -1219,13 +1277,15 @@ const NFLModel = (() => {
           w = rand() < p ? g.h : g.a;
         }
         res.push({ a: g.a, h: g.h, w });
+        if (tk) { const k = tIdx.get(g.id); if (k !== undefined) tW[k] = w === g.h ? 1 : 0; }
         if (w === g.h) gameWin.set(g.id, (gameWin.get(g.id) || 0) + 1);
       }
       const st = makeStandings(res);
       for (let i = 0; i < N; i++) { acc.wins[i] += st.W[i]; acc.winDist[i][Math.min(maxG, Math.round(st.W[i]))]++; }
       const champs = {};
       for (const conf of ['AFC', 'NFC']) {
-        const { seeds, divWinners } = seedConference(st, conf, rand);
+        const { seeds, divWinners } = seedConference(st, conf, rT);
+        if (tk && confOf[tT] === conf) { tMade = [seeds.includes(tT), divWinners.includes(tT), seeds[0] === tT]; }
         seeds.forEach((t, k) => { acc.playoff[t]++; acc.seed[t][k + 1]++; });
         divWinners.forEach(t => acc.div[t]++);
         acc.bye[seeds[0]]++;
@@ -1235,7 +1295,7 @@ const NFLModel = (() => {
           const real = poWin.get(Math.min(hi, lo) * 64 + Math.max(hi, lo));   // already played for real
           if (real !== undefined) return real;
           const p = Phi((str(hi) - str(lo) + (neutral ? 0 : fit.hfa)) / sd);
-          return rand() < p ? hi : lo;
+          return rP() < p ? hi : lo;
         };
         const seedOf = t => seeds.indexOf(t);
         let alive = [seeds[0], play(seeds[1], seeds[6]), play(seeds[2], seeds[5]), play(seeds[3], seeds[4])];
@@ -1249,8 +1309,9 @@ const NFLModel = (() => {
       const hosts = opts.sbHosts || [];                                   // teams whose home stadium hosts the Super Bowl
       const sofi = (hosts.includes(TEAMS[champs.AFC]) ? fit.hfa / 2 : 0) - (hosts.includes(TEAMS[champs.NFC]) ? fit.hfa / 2 : 0);
       const realSB = poWin.get(Math.min(champs.AFC, champs.NFC) * 64 + Math.max(champs.AFC, champs.NFC));
-      const winner = realSB !== undefined ? realSB : Phi((fit.r[champs.AFC] + shock[champs.AFC] + qbvPO(champs.AFC) - fit.r[champs.NFC] - shock[champs.NFC] - qbvPO(champs.NFC) + sofi) / sd) > rand() ? champs.AFC : champs.NFC;
+      const winner = realSB !== undefined ? realSB : Phi((fit.r[champs.AFC] + shock[champs.AFC] + qbvPO(champs.AFC) - fit.r[champs.NFC] - shock[champs.NFC] - qbvPO(champs.NFC) + sofi) / sd) > rP() ? champs.AFC : champs.NFC;
       acc.sb[winner]++;
+      if (tk) for (let k = 0; k < tk; k++) { const hw = tW[k]; T.hw[k] += hw; for (let q = 0; q < 3; q++) if (tMade[q]) T.goal[q][hw ? 'h' : 'a'][k]++; }
     }
 
     const st = makeStandings(fixed);
@@ -1276,7 +1337,12 @@ const NFLModel = (() => {
       return [...seen.keys()].map(id => ({ id, name: qs.names[id] || id, pts: qs.now(id), recent: id === qs.recent[t] }));
     }
     const results = done.map(g => ({ id: g.id, week: g.week, date: g.date, away: TEAMS[g.a], home: TEAMS[g.h], as: g.as, hs: g.hs }));
-    return { teams, upcoming, results, maxGames: maxG, hfa: fit.hfa, ratingWeek: fit.latest, lastPlayedWeek, sims, shockSD };
+    const track = tk ? tHome.map((g, k) => {
+      const nh = T.hw[k], na = sims - nh, f = (x, n) => (n ? x / n : null);
+      return { id: g.id, week: g.week, date: g.date, time: g.time, away: TEAMS[g.a], home: TEAMS[g.h], neutral: g.neutral, pHome: nh / sims,
+        ifHome: T.goal.map(q => f(q.h[k], nh)), ifAway: T.goal.map(q => f(q.a[k], na)) };
+    }) : null;
+    return { teams, upcoming, results, maxGames: maxG, hfa: fit.hfa, ratingWeek: fit.latest, lastPlayedWeek, sims, shockSD, track, sd };
   }
 
   // Seed a finished season from its results (for checking tiebreakers against real brackets)
@@ -1517,7 +1583,8 @@ function renderAll() {
   $('#foot-upd').textContent = upd ? ` Data last updated ${upd}.` : '';
   $('#hfa').textContent = r.hfa.toFixed(1);
   $('#shock').textContent = '±' + r.shockSD.toFixed(0);
-  renderOverview(); renderFocus(); renderTable(); renderWhatIf(); renderVs(); renderBracket();
+  renderOverview(); renderFocus(); renderTable(); renderWhatIf(); renderVs(); renderBracket(); renderProjected();
+  loadRooting(); renderRoot();
   updateNav();
 }
 // "today 8:19 AM EDT" or "Mon, Sep 28, 6:07 PM EDT", in the visitor's own time zone
@@ -1852,6 +1919,85 @@ function playoffStory(t) {
   const sb = mine.find(g => g.round === 4 && poWinner(g) === t);
   if (sb) return `The #${seed} seed ${esc(M.NAMES[t])} won ${esc(sbName)}.`;
   return `The ${esc(M.NAMES[t])} are the #${seed} seed${mine.length ? ' and still alive' : ''}.`;
+}
+
+// ---- who to root for (from data/rooting-YEAR.json, computed by the refresh) ----
+let ROOT = null, rootToken = '';
+function validRooting(d) {
+  try {
+    const okT = o => o && typeof o === 'object' && M.TEAMS.every(t => Array.isArray(o[t]) && o[t].length === 3 && o[t].every(v => Number.isInteger(v) && v >= 0 && v <= 1000));
+    return !!d && d.season === YEAR && Number.isInteger(d.week) && typeof d.basedOn === 'string' && okT(d.base) && Array.isArray(d.games) && d.games.length <= 20 &&
+      d.games.every(g => RX.gid.test(g.id) && M.TEAMS.includes(g.away) && M.TEAMS.includes(g.home) && Number.isInteger(g.pHome) && okT(g.ifHome) && okT(g.ifAway));
+  } catch (e) { return false; }
+}
+async function loadRooting() {
+  const token = YEAR + '|' + season.updatedAt;
+  if (!DB || token === rootToken) return;
+  rootToken = token; ROOT = null;
+  try { const s = await DB.doc('rooting/' + YEAR).get(); if (token === rootToken && s.exists && validRooting(s.data())) { ROOT = s.data(); renderRoot(); } } catch (e) {}
+}
+function renderRoot() {
+  const box = $('#rootbox');
+  const ok = focus && ROOT && ROOT.season === YEAR && ROOT.basedOn === season.updatedAt && !isFinal();
+  box.hidden = !ok; if (!ok) return;
+  const nm = M.NAMES[focus], b = ROOT.base[focus];
+  const m = b[0] >= 950 && b[1] < 950 ? 1 : b[0] >= 950 ? 2 : 0;            // playoffs, else division, else #1 seed
+  const goal = ['playoff chance', 'chance to win the division', 'chance at the #1 seed'][m];
+  const rowsById = Object.fromEntries(seasonRows().map(g => [g.id, g]));
+  const f1 = v => (v / 10).toFixed(1) + '%';
+  const list = ROOT.games.filter(g => g.home !== focus && g.away !== focus).map(g => {
+    const d = g.ifHome[focus][m] - g.ifAway[focus][m], root = d >= 0 ? g.home : g.away, vs = d >= 0 ? g.away : g.home;
+    return { g, d: Math.abs(d), root, vs, yes: (d >= 0 ? g.ifHome : g.ifAway)[focus][m], no: (d >= 0 ? g.ifAway : g.ifHome)[focus][m] };
+  }).sort((x, y) => y.d - x.d);
+  const top = list.filter(x => x.d >= 5).slice(0, 6);
+  const picked = Object.keys(picks).length + Object.keys(qbPicks).length > 0;
+  box.innerHTML = `<h3>Who to root for in Week ${ROOT.week}</h3>
+    <p class="k-note">Other games this week, ranked by how much each result changes the ${esc(nm)}' ${goal}.${picked ? ' Based on the odds without your What If picks.' : ''}</p>
+    ${top.length ? `<ul class="rootlist">${top.map(x => { const r = rowsById[x.g.id] || x.g;
+      return `<li><div class="rt"><span class="who">${chip(x.root)}${esc(M.NAMES[x.root])} <span class="ov">over the ${esc(M.NAMES[x.vs])}</span></span><span class="gain">+${(x.d / 10).toFixed(1)} pts</span></div>
+        <div class="det">${f1(x.yes)} if the ${esc(M.NAMES[x.root])} win, ${f1(x.no)} if the ${esc(M.NAMES[x.vs])} do · ${when(r)}</div></li>`; }).join('')}</ul>`
+      : `<p class="note">No other game this week changes the ${esc(nm)}' ${goal} by more than half a point.</p>`}`;
+}
+
+// ---- projected playoff bracket (during the regular season) ----
+function renderProjected() {
+  const sec = $('#proj-sec');
+  if (!cur || isFinal()) { sec.hidden = true; return; }
+  sec.hidden = false;
+  const T = Object.fromEntries(cur.teams.map(t => [t.abbr, t])), sd = cur.sd || 11.5;
+  const wp = (h, a, neutral) => M.Phi((T[h].rating - T[a].rating + (neutral ? 0 : cur.hfa)) / sd);   // home (or first) team's win chance
+  const card = (hi, lo, seedOf, neutral, first) => {
+    const p = wp(hi, lo, neutral), win = p >= 0.5 ? hi : lo;
+    const row = (t, v) => `<div class="row${t === win ? ' win' : ' lose'}${t === focus ? ' me' : ''}"><span class="sd">#${seedOf(t)}</span><span class="nm">${chip(t)}${esc(M.NAMES[t])}</span><span class="sc pr">${v}</span></div>`;
+    const v = t => pct(t === hi ? p : 1 - p);
+    return { html: `<div class="po-game">${row(lo, v(lo))}${row(hi, v(hi))}</div>`, win };
+  };
+  let html = '', champs = {};
+  for (const c of ['AFC', 'NFC']) {
+    const divs = Object.keys(M.DIV).filter(d => d.startsWith(c));
+    const dw = divs.map(d => M.DIV[d].slice().sort((a, b) => T[b].divWin - T[a].divWin)[0]);
+    const byWins = (a, b) => T[b].projW - T[a].projW || T[b].bye - T[a].bye;
+    dw.sort(byWins);
+    const wc = cur.teams.filter(t => t.conf === c && !dw.includes(t.abbr)).sort((a, b) => b.playoff - a.playoff).slice(0, 3).map(t => t.abbr).sort(byWins);
+    const seeds = [...dw, ...wc], seedOf = t => seeds.indexOf(t) + 1;
+    const wcg = [[1, 6], [2, 5], [3, 4]].map(([x, y]) => card(seeds[x], seeds[y], seedOf, false, true));
+    const alive = [seeds[0], ...wcg.map(g => g.win)].sort((a, b) => seedOf(a) - seedOf(b));
+    const d1 = card(alive[0], alive[3], seedOf, false, false), d2 = card(alive[1], alive[2], seedOf, false, false);
+    const [hi, lo] = [d1.win, d2.win].sort((a, b) => seedOf(a) - seedOf(b));
+    const cf = card(hi, lo, seedOf, false, false);
+    champs[c] = { t: cf.win, seedOf };
+    html += `<div class="po-conf"><h3>${c}</h3><p class="k-note seedline">Chance to make the playoffs: ${seeds.map((t, i) => `#${i + 1} ${esc(M.NAMES[t])} ${pct(T[t].playoff)}`).join(' · ')}</p><div class="po-rounds">
+      <div class="po-round"><span class="rt">${ROUNDS[1]}</span><div class="po-bye">#1 ${chip(seeds[0])}${esc(M.NAMES[seeds[0]])}: first-round bye</div>${wcg.map(g => g.html).join('')}</div>
+      <div class="po-round"><span class="rt">${ROUNDS[2]}</span>${d1.html}${d2.html}</div>
+      <div class="po-round"><span class="rt">${ROUNDS[3]} title</span>${cf.html}</div>
+    </div></div>`;
+  }
+  const sbName = (PRI.sb || CFG.sb || {}).name || 'Super Bowl';
+  const a = champs.AFC.t, n = champs.NFC.t, pA = wp(a, n, true), win = pA >= 0.5 ? a : n;
+  const row = (t, p, so) => `<div class="row${t === win ? ' win' : ' lose'}${t === focus ? ' me' : ''}"><span class="sd">${t === a ? 'AFC' : 'NFC'}</span><span class="nm">${chip(t)}${esc(M.NAMES[t])}</span><span class="sc pr">${pct(p)}</span></div>`;
+  html += `<div class="po-conf po-sb"><h3>${esc(sbName)}</h3><div class="po-game">${row(a, pA)}${row(n, 1 - pA)}</div></div>`;
+  $('#proj-grid').innerHTML = html;
+  $('#proj-champ').innerHTML = `<b>${esc(M.CITY[win])} ${esc(M.NAMES[win])}</b> would be favored in every game along this path. Their actual chance of winning ${esc(sbName)} is ${pct(T[win].sbWin, true)}: even the likeliest champion usually doesn't win it.`;
 }
 
 // ---- league overview, team picker, team links ----
