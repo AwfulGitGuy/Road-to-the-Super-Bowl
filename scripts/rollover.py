@@ -115,7 +115,7 @@ end = (datetime.date.fromisoformat(last_date) + datetime.timedelta(days=40)).iso
 seasons = sorted(set(cfg.get('seasons', [])) | {Y})
 config = {"current": Y, "seasons": seasons, "games": len(ng), "weeks": max(int(r['week']) for r in ng),
           "sb": {"number": n, "name": f"Super Bowl {roman(n)}", "venue": venue, "hosts": hosts},
-          "endDate": end, "updatedAt": datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%MZ')}
+          "endDate": end, "updatedAt": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%dT%H:%MZ')}
 json.dump({"season": Y, "qb": qb_prior, "perf": perf, "market": market, "sb": config["sb"], "games": config["games"], "weeks": config["weeks"]}, open('priors.json', 'w'), separators=(',', ':'))
 json.dump(config, open('config.json', 'w'), separators=(',', ':'))
 top = sorted(market.items(), key=lambda kv: -kv[1])[:3]
