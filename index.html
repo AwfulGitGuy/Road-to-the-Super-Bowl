@@ -32,8 +32,18 @@ h2{font-size:24px;text-transform:uppercase;letter-spacing:.03em}
 h3{font-size:17px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-2);font-weight:600}
 .num{font-variant-numeric:tabular-nums}
 .eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:13px;color:var(--ink-3);font-weight:600}
-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:3px solid var(--ink);padding-bottom:16px}
-header .meta{color:var(--ink-2);font-size:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;text-align:right}
+header{border-bottom:3px solid var(--ink);padding-bottom:14px}
+header .meta{color:var(--ink-2);font-size:14px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:14px}
+.updline{margin:0}
+.updline .status{font-size:14px}
+.updline .status:not(:empty)::before{content:" · "}
+.secnav{position:sticky;top:0;z-index:20;background:var(--bg);display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-block:-16px -8px;padding:6px 0;border-bottom:1px solid var(--line);box-shadow:0 0 0 100vmax var(--bg);clip-path:inset(0 -100vmax)}
+.secnav::-webkit-scrollbar{display:none}
+.secnav button{flex:none;background:none;border:0;border-radius:4px;padding:6px 10px;font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:14px;color:var(--ink-2)}
+.secnav button:hover{color:var(--ink);background:var(--surface-2)}
+.secnav button[aria-current="true"]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--gold);border-radius:4px 4px 0 0}
+.secnav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+section{scroll-margin-top:56px}
 button{font:inherit;cursor:pointer}
 .btn{font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:14px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);padding:7px 14px;border-radius:4px}
 .btn:hover{background:var(--ink);color:var(--bg)}
@@ -62,13 +72,42 @@ select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid 
 .chart .axis{stroke:var(--ink-3);stroke-width:1}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;padding:5px 8px;border-radius:4px;white-space:nowrap;transform:translate(-50%,-110%);z-index:5}
 .chartbox{position:relative}
-.nextgame{border-top:1px solid var(--line);padding-top:12px;font-size:14px;color:var(--ink-2)}
+.nextgame{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between;background:var(--surface-2);border-radius:6px;padding:12px 16px}
+.nextgame:empty{display:none}
+.nextgame.plain{display:block;font-size:14px;color:var(--ink-2)}
 .nextgame b{color:var(--ink)}
+.ng-main{min-width:0}
+.ng-when{font-size:13px;color:var(--ink-2)}
+.ng-t{font-family:var(--display);font-size:26px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;line-height:1.1;margin-top:2px}
+.ng-nums{display:flex;gap:22px;flex-wrap:wrap}
+.ng-nums .v{font-family:var(--display);font-size:32px;font-weight:700;line-height:1;display:block}
+.ng-nums .v.up{color:var(--good)} .ng-nums .v.down{color:var(--bad)}
+.ng-nums .k{font-size:12px;color:var(--ink-2);line-height:1.3;display:block;margin-top:2px}
 /* table */
 .seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:4px;overflow:hidden}
 .seg button{background:transparent;border:0;color:var(--ink);padding:6px 12px;font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:14px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line)}
+.tbl-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn.sm{font-size:13px;padding:5px 10px}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+#odds{min-width:0}
+#odds:not(.showr) .rt{display:none}
+#odds.showr{min-width:920px}
+th[title] button{text-decoration:underline dotted var(--ink-3);text-underline-offset:3px}
+@media (max-width:640px){
+  #odds:not(.showr) .opt{display:none}
+  #odds th,#odds td{padding:6px 4px}
+  #odds{font-size:13.5px}
+  #odds td.team .chip{margin-right:6px}
+  #odds td.pct{min-width:0}
+  .ng-nums{gap:14px;width:100%}
+  .ng-nums>div{flex:1}
+  .ng-nums .v{font-size:28px}
+  .ng-t{font-size:22px}
+  #odds td.team .ab{display:none}
+  #odds thead th{font-size:12px;white-space:normal}
+}
 table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
 th,td{padding:7px 10px;text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
@@ -88,15 +127,17 @@ td.pct{min-width:64px}
 .weeks button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:4px;padding:4px 10px;font-family:var(--display);font-weight:600;font-size:14px}
 .weeks button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
 .weeks button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-left:5px;vertical-align:middle}
-.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
-.game{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:8px}
+.game{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px 9px;display:flex;flex-direction:column;gap:5px}
 .game.me{border-color:var(--gold)}
 .game .when{font-size:12px;color:var(--ink-3)}
 .pick{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:stretch}
-.pick button{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:4px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;gap:0}
-.pick button .t{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.1}
-.pick button .p{font-size:12px;color:var(--ink-2)}
-.pick button.mid{padding:6px 6px;font-size:11px;color:var(--ink-3);justify-content:center}
+.pick button{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:4px;padding:5px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.pick button .t{display:flex;align-items:center;gap:6px;min-width:0}
+.pick button .t{font-family:var(--display);font-weight:700;font-size:15.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick button .p{font-size:13px;color:var(--ink-2)}
+.pick button:not(.mid):hover{border-color:var(--ink)}
+.pick button.mid{padding:5px 4px;font-size:12px;color:var(--ink-3);justify-content:center;align-items:center;min-width:24px}
 .pick button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
 .pick button[aria-pressed="true"] .p{color:var(--bg);opacity:.8}
 .pick button.mid[aria-pressed="true"]{background:transparent;color:var(--ink-3);border-color:transparent}
@@ -189,6 +230,29 @@ table.vs{min-width:640px}
 td.team .tlink{text-decoration:none}
 td.team .tlink:hover .nm{text-decoration:underline}
 @media (prefers-reduced-motion:no-preference){ .probbar i{transition:width .3s} }
+/* team color chips */
+.chip{display:inline-block;flex:none;width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--c1) 50%,var(--c2) 50%);box-shadow:0 0 0 1px var(--line);vertical-align:-1px;margin-right:6px}
+.pick button .chip{margin-right:0}
+td.team .chip{margin-right:8px}
+/* seed chart heading */
+.h3row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.h3row .k-note{font-size:13px;color:var(--ink-2)}
+/* model details */
+.details{background:var(--surface);border:1px solid var(--line)}
+.details>summary{cursor:pointer;list-style:none;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:var(--display);text-transform:uppercase;letter-spacing:.05em;font-weight:600;font-size:17px}
+.details>summary::-webkit-details-marker{display:none}
+.details>summary::after{content:"+";font-size:22px;line-height:1;color:var(--ink-3)}
+.details[open]>summary::after{content:"−"}
+.details>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.details>summary small{display:block;font-family:var(--body);text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;color:var(--ink-2);margin-top:2px}
+.details .inner{padding:0 18px 18px;display:flex;flex-direction:column;gap:14px}
+.details .how{border:0;padding:0;background:none}
+/* footer */
+.foot{border-top:3px solid var(--ink);padding-top:14px;font-size:13px;color:var(--ink-2);display:flex;flex-direction:column;gap:4px}
+.foot p{margin:0}
+/* reserve space while charts are still calculating, so jumps land in the right place */
+.histbox:has(>p){aspect-ratio:900/290;display:flex;align-items:center;justify-content:center}
+#ov-move:has(>p){min-height:150px}
 </style>
 
 </head>
@@ -202,10 +266,17 @@ td.team .tlink:hover .nm{text-decoration:underline}
   </div>
   <div class="meta">
     <label class="teamsel" id="seasonwrap">Season <select id="seasonsel" aria-label="Choose a season"><option>2026</option></select></label>
-    <span id="asof" class="num">Loading season data…</span>
-    <span id="runstatus" class="status" aria-live="polite"></span>
+    <p class="updline"><span id="asof" class="num">Loading season data…</span><span id="runstatus" class="status" aria-live="polite"></span></p>
   </div>
 </header>
+<nav class="secnav" id="secnav" aria-label="Jump to a section">
+  <button type="button" data-jump="ov-sec">League</button>
+  <button type="button" data-jump="po-sec">Playoffs</button>
+  <button type="button" data-jump="focus-sec" id="nav-team">Your team</button>
+  <button type="button" data-jump="table-sec">All teams</button>
+  <button type="button" data-jump="whatif-sec">What if</button>
+  <button type="button" data-jump="how-sec">How it works</button>
+</nav>
 
 <section aria-labelledby="ov-h" id="ov-sec">
   <div class="sec-head">
@@ -236,6 +307,7 @@ td.team .tlink:hover .nm{text-decoration:underline}
   </div>
   <div class="picker" id="picker" hidden></div>
   <div class="focus" id="focus">
+    <div class="nextgame" id="nextgame"></div>
     <div class="stats" id="stats"><p class="status">Calculating…</p></div>
     <div style="display:flex;flex-direction:column;gap:16px">
       <div>
@@ -243,50 +315,68 @@ td.team .tlink:hover .nm{text-decoration:underline}
         <div class="chartbox" id="windist"></div>
       </div>
       <div>
-        <h3>Playoff seed</h3>
+        <div class="h3row"><h3>Playoff seed</h3><span class="k-note num" id="seedout"></span></div>
         <div class="chartbox" id="seeddist"></div>
       </div>
-      <div class="nextgame" id="nextgame"></div>
     </div>
   </div>
 </section>
 
-<section aria-labelledby="hist-h">
+<section aria-labelledby="hist-h" id="hist-sec">
   <div class="sec-head">
     <h2 id="hist-h">Odds over time</h2>
     <div class="legend" id="histlegend"></div>
   </div>
-  <p class="note">How <span id="focus-name-3">your team</span>'s chances looked before the season and after each week, as the model would have seen them at the time (results and betting lines up to that point only). Each point is 2,000 simulated seasons, so small wiggles are noise.</p>
+  <p class="note">How <span id="focus-name-3">your team’s</span> chances looked before the season and after each week, as the model would have seen them at the time (results and betting lines up to that point only). Each point is 2,000 simulated seasons, so small wiggles are noise.</p>
   <div class="chartbox histbox" id="histchart"><p class="status">Replaying the season week by week…</p></div>
 </section>
 
-<section aria-labelledby="table-h">
+<section aria-labelledby="table-h" id="table-sec">
   <div class="sec-head">
     <h2 id="table-h">Every team's odds</h2>
-    <div class="seg" role="group" aria-label="Conference">
-      <button type="button" data-conf="AFC" aria-pressed="true">AFC</button>
-      <button type="button" data-conf="NFC" aria-pressed="false">NFC</button>
-      <button type="button" data-conf="ALL" aria-pressed="false">All</button>
+    <div class="tbl-ctrl">
+      <button type="button" class="btn sm" id="ratingsbtn" aria-pressed="false">Show QBs and ratings</button>
+      <div class="seg" role="group" aria-label="Conference">
+        <button type="button" data-conf="AFC" aria-pressed="true">AFC</button>
+        <button type="button" data-conf="NFC" aria-pressed="false">NFC</button>
+        <button type="button" data-conf="ALL" aria-pressed="false">All</button>
+      </div>
     </div>
   </div>
-  <p class="note">Grouped by division. Click a column heading to rank by it; click Team to go back to divisions. Shading darkens with probability.</p>
+  <p class="note">Grouped by division. Tap a column heading to rank by it, or Team to go back to divisions. Darker shading means more likely.</p>
   <div class="tablebox"><table id="odds"><thead></thead><tbody></tbody></table></div>
 </section>
 
-<section aria-labelledby="whatif-h">
+<section aria-labelledby="whatif-h" id="whatif-sec">
   <div class="sec-head">
     <h2 id="whatif-h">What if?</h2>
     <div class="pickbar"><span id="pickcount">No picks yet</span><button type="button" class="btn" id="clearpicks" disabled>Clear picks</button></div>
   </div>
-  <p class="note">Pick a winner for any remaining game and every number on the page re-runs with that result locked in. Each button shows the model's chance of that team winning. Weeks with a gold dot include a game for <span id="focus-name-2">your team</span>. Your picks stay in this browser only.</p>
+  <p class="note">Pick a winner for any remaining game and every number on the page re-runs with that result locked in. Each button shows that team's chance of winning. Weeks with a gold dot include a game for <span id="focus-name-2">your team</span>. Your picks stay in this browser only.</p>
   <div class="weeks" id="weeks" role="group" aria-label="Week"></div>
   <div class="games" id="games"></div>
 </section>
 
-<section aria-labelledby="vs-h">
-  <div class="sec-head">
-    <h2 id="vs-h">Our rating vs. the market</h2>
+<section aria-labelledby="how-h" id="how-sec">
+  <h2 id="how-h">How it works</h2>
+  <p class="note">Every team is rated from betting-market point spreads, with each starting quarterback rated separately. The rest of the season, then the playoffs, are played out 10,000 times with the NFL's real tiebreakers, and each percentage is how often that outcome happened. Open the sections below for the details.</p>
+  <details class="details">
+    <summary><span>The model, step by step<small>Ratings, win chances, the simulation, and what it leaves out</small></span></summary>
+    <div class="inner">
+  <div class="how">
+    <div><h3>1 · Rate every team</h3><p>Each team gets a rating in points, fitted to the betting-market point spreads on every game that has one. Recent weeks count more (each older week weighs 0.7× the next). The starting quarterback is split out: each QB has a value from his efficiency per play (EPA) over recent seasons, and the market lines set how many points that is worth. A backup starting only lowers a team for the games he starts. A rating of +3 means a 3-point favorite over an average team on a neutral field. Home field is fitted too, currently <b id="hfa" class="num">…</b> points.</p></div>
+    <div><h3>2 · Turn ratings into win chances</h3><p>A point gap becomes a win chance using a curve fitted to every game from 2002 to 2017 and checked on 2018 to 2025. A team favored by 3 points wins about 60% of the time, and a 7-point favorite about 73%. Games with a posted line use the market line directly.</p></div>
+    <div><h3>3 · Play the season 10,000 times</h3><p>Every remaining game is played at random using those chances. Each run also lets every team's strength drift up or down week by week, because injuries happen and teams change over a season. The drift is sized from how much betting-market ratings have actually moved in past seasons. Games with this week's lines get no drift, and games far off get the most (up to about <b id="shock" class="num">…</b> points by season's end). Tested by replaying 2006 to 2025 from Weeks 3, 8 and 12.</p></div>
+    <div><h3>4 · Seed and play the playoffs</h3><p>Each run builds the standings, breaks ties with the NFL's tiebreakers (head-to-head, division record, common games, conference record, strength of victory and schedule), seeds 7 teams per conference, and plays out every round. Run on the final standings of every season from 2002 to 2025, this seeding code reproduces all 48 real conference brackets exactly. Super Bowl LXI is at SoFi Stadium, so the Rams or Chargers get half the usual home-field edge if they reach it. The percentages are how often each outcome happened.</p></div>
+    <div><h3>What it leaves out</h3><p>The model can't know how long an injured starter will be out, so it assumes the latest starter keeps playing. Use the Starting QB menu in the team panel to test a return. Injuries at other positions count only once the betting market reacts to them. Tied games aren't simulated (they're under 1% of games). The rare points-based tiebreakers that come after strength of schedule are settled by coin flip, which happens in fewer than 1 in 1,000 simulated seasons.</p></div>
+    <div><h3>Two ratings</h3><p>The playoff odds use the market rating. The comparison section uses our own score-only rating, which lost to the market in every test season. It is there to show why the market makes the better foundation.</p></div>
+    <div><h3>Updates</h3><p>Scores, betting lines and starting quarterbacks come from the free <a href="https://github.com/nflverse">nflverse</a> project. They refresh every 30 minutes while games are on and every few hours otherwise, with a run just before 6 AM Eastern each day, through the Super Bowl. An open page checks for new data every 30 minutes and re-runs itself when it arrives.</p></div>
   </div>
+    </div>
+  </details>
+  <details class="details" id="vs-sec">
+    <summary><span id="vs-h">Our score-only rating vs. the market<small>A second rating built without betting lines, this week's disagreements, and a 2018–2025 backtest</small></span></summary>
+    <div class="inner">
   <p class="note">This is a second, independent rating built only from final scores, with no betting lines. After each game, both teams' ratings move by 8% of how far the result beat expectations (margins are capped at 21 points). Ratings carry 70% over from one season to the next. Everything above still uses the market; this section is for comparison only.</p>
   <div class="tablebox"><table id="vs" class="vs"><thead><tr><th scope="col">Game</th><th scope="col">When</th><th scope="col">Market line</th><th scope="col">Our line</th><th scope="col">Gap</th><th scope="col">We lean</th></tr></thead><tbody></tbody></table></div>
   <p class="note" id="vs-note"></p>
@@ -305,20 +395,13 @@ td.team .tlink:hover .nm{text-decoration:underline}
       <p class="note" style="font-size:13px">Average miss is the typical error in the predicted margin (root-mean-square, in points); lower is better. Winners is how often the side each one favored won the game.</p>
     </div>
   </div>
+    </div>
+  </details>
 </section>
-
-<section aria-labelledby="how-h">
-  <h2 id="how-h">How the model works</h2>
-  <div class="how">
-    <div><h3>1 · Rate every team</h3><p>Each team gets a rating in points, fitted to the betting-market point spreads on every game that has one. Recent weeks count more (each older week weighs 0.7× the next). The starting quarterback is split out: each QB has a value from his efficiency per play (EPA) over recent seasons, and the market lines set how many points that is worth. A backup starting only lowers a team for the games he starts. A rating of +3 means a 3-point favorite over an average team on a neutral field. Home field is fitted too, currently <b id="hfa" class="num">…</b> points.</p></div>
-    <div><h3>2 · Turn ratings into win chances</h3><p>A point gap becomes a win chance using a curve fitted to every game from 2002 to 2017 and checked on 2018 to 2025. A team favored by 3 points wins about 60% of the time, and a 7-point favorite about 73%. Games with a posted line use the market line directly.</p></div>
-    <div><h3>3 · Play the season 10,000 times</h3><p>Every remaining game is played at random using those chances. Each run also lets every team's strength drift up or down week by week, because injuries happen and teams change over a season. The drift is sized from how much betting-market ratings have actually moved in past seasons. Games with this week's lines get no drift, and games far off get the most (up to about <b id="shock" class="num">…</b> points by season's end). Tested by replaying 2006 to 2025 from Weeks 3, 8 and 12.</p></div>
-    <div><h3>4 · Seed and play the playoffs</h3><p>Each run builds the standings, breaks ties with the NFL's tiebreakers (head-to-head, division record, common games, conference record, strength of victory and schedule), seeds 7 teams per conference, and plays out every round. Run on the final standings of every season from 2002 to 2025, this seeding code reproduces all 48 real conference brackets exactly. Super Bowl LXI is at SoFi Stadium, so the Rams or Chargers get half the usual home-field edge if they reach it. The percentages are how often each outcome happened.</p></div>
-    <div><h3>What it leaves out</h3><p>The model can't know how long an injured starter will be out, so it assumes the latest starter keeps playing. Use the Starting QB menu in the team panel to test a return. Injuries at other positions count only once the betting market reacts to them. Tied games aren't simulated (they're under 1% of games). The rare points-based tiebreakers that come after strength of schedule are settled by coin flip, which happens in fewer than 1 in 1,000 simulated seasons.</p></div>
-    <div><h3>Two ratings</h3><p>The playoff odds use the market rating. The comparison section uses our own score-only rating, which lost to the market in every test season. It is there to show why the market makes the better foundation.</p></div>
-    <div><h3>Updates</h3><p>Scores and betting lines refresh automatically every morning from the public <a href="https://github.com/nflverse/nfldata">nflverse</a> dataset. The page re-runs itself when new data arrives, and the refresh switches off after the last regular-season game.</p></div>
-  </div>
-</section>
+<footer class="foot">
+  <p>Data from <a href="https://github.com/nflverse">nflverse</a>, a free, volunteer-run project. Code and data files are on <a href="https://github.com/AwfulGitGuy/Road-to-the-Super-Bowl">GitHub</a>.<span id="foot-upd"></span></p>
+  <p>An independent fan project with no connection to the NFL or its teams. The percentages are estimates, not guarantees.</p>
+</footer>
 </div>
 <script type="text/plain" id="model-src">// NFL season model: market-implied ratings + Monte Carlo season/playoff simulation.
 const NFLModel = (() => {
@@ -1207,6 +1290,12 @@ function line(g) {
   return g.spread > 0 ? `${g.home} −${g.spread}` : `${g.away} −${-g.spread}`;
 }
 const team = (r, ab) => r.teams.find(t => t.abbr === ab);
+// team colors (primary, secondary) for the small identifying dots
+const TC = { ARI: ['#97233F', '#FFB612'], ATL: ['#A71930', '#000000'], BAL: ['#241773', '#9E7C0C'], BUF: ['#00338D', '#C60C30'], CAR: ['#0085CA', '#101820'], CHI: ['#0B162A', '#C83803'], CIN: ['#FB4F14', '#000000'], CLE: ['#311D00', '#FF3C00'],
+  DAL: ['#003594', '#869397'], DEN: ['#FB4F14', '#002244'], DET: ['#0076B6', '#B0B7BC'], GB: ['#203731', '#FFB612'], HOU: ['#03202F', '#A71930'], IND: ['#002C5F', '#A2AAAD'], JAX: ['#006778', '#D7A22A'], KC: ['#E31837', '#FFB81C'],
+  LV: ['#000000', '#A5ACAF'], LAC: ['#0080C6', '#FFC20E'], LA: ['#003594', '#FFA300'], MIA: ['#008E97', '#FC4C02'], MIN: ['#4F2683', '#FFC62F'], NE: ['#002244', '#C60C30'], NO: ['#D3BC8D', '#101820'], NYG: ['#0B2265', '#A71930'],
+  NYJ: ['#125740', '#FFFFFF'], PHI: ['#004C54', '#A5ACAF'], PIT: ['#FFB612', '#101820'], SF: ['#AA0000', '#B3995D'], SEA: ['#002244', '#69BE28'], TB: ['#D50A0A', '#34302B'], TEN: ['#0C2340', '#4B92DB'], WAS: ['#5A1414', '#FFB612'] };
+const chip = t => TC[t] ? `<i class="chip" style="--c1:${TC[t][0]};--c2:${TC[t][1]}" aria-hidden="true"></i>` : '';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---- run ----
@@ -1255,23 +1344,34 @@ async function runSwing() {
 // ---- render ----
 function renderAll() {
   const r = cur;
-  const upd = season.updatedAt ? season.updatedAt.replace('T', ' ').replace('Z', ' UTC') : '';
+  const upd = updStr();
   const sbName = (PRI.sb || CFG.sb || {}).name || 'the Super Bowl';
   $('#eyebrow').textContent = `${YEAR} NFL season simulator`;
   $('#sbtitle').textContent = `Road to ${sbName}`;
   const sbDone = poGames().some(g => g.round === 4 && poWinner(g));
-  $('#asof').textContent = sbDone ? `${YEAR} season complete` : isFinal() ? `Regular season complete · data updated ${upd}` : `Results through Week ${r.lastPlayedWeek} · data updated ${upd}`;
+  $('#asof').textContent = sbDone ? `${YEAR} season · final` : (isFinal() ? 'Regular season complete' : `Through Week ${r.lastPlayedWeek}`) + (upd ? ` · updated ${upd}` : '');
   document.querySelectorAll('.sbname').forEach(el => { el.textContent = sbName; });
-  $('section[aria-labelledby="whatif-h"]').hidden = isFinal();
+  $('#whatif-sec').hidden = isFinal();
+  $('#foot-upd').textContent = upd ? ` Data last updated ${upd}.` : '';
   $('#hfa').textContent = r.hfa.toFixed(1);
   $('#shock').textContent = '±' + r.shockSD.toFixed(0);
   renderOverview(); renderFocus(); renderTable(); renderWhatIf(); renderVs(); renderBracket();
+  updateNav();
 }
+// "today 8:19 AM EDT" or "Mon, Sep 28, 6:07 PM EDT", in the visitor's own time zone
+function updStr() {
+  const d = new Date(season.updatedAt || '');
+  if (isNaN(d)) return '';
+  const today = d.toDateString() === new Date().toDateString();
+  const o = today ? { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' } : { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' };
+  try { return (today ? 'today ' : '') + d.toLocaleString(undefined, o); } catch (e) { return d.toLocaleString(); }
+}
+const poss = n => n + (n.endsWith('s') ? '’' : '’s');
 
 function renderFocus() {
   renderPicker();
   const nm = focus ? M.NAMES[focus] : 'Your team';
-  $('#focus-name').textContent = nm; $('#focus-name-2').textContent = focus ? nm : 'your team'; $('#focus-name-3').textContent = focus ? 'the ' + nm : 'your team';
+  $('#focus-name').textContent = nm; $('#focus-name-2').textContent = focus ? 'the ' + nm : 'your team'; $('#focus-name-3').textContent = focus ? 'the ' + poss(nm) : 'your team’s';
   if (!focus) return;
   const t = team(cur, focus), b0 = team(base, focus);
   const hasPicks = Object.keys(picks).length + Object.keys(qbPicks).length > 0;
@@ -1289,11 +1389,11 @@ function renderFocus() {
     <div class="stat"><div class="v num">${pf(t.confWin, true)}</div><div class="k">Win the ${t.conf}${d(t.confWin, b0.confWin)}</div></div>
     <div class="stat"><div class="v num">${pf(t.sbWin, true)}</div><div class="k">Win <span class="sbname">${esc((PRI.sb || CFG.sb || {}).name || 'the Super Bowl')}</span>${d(t.sbWin, b0.sbWin)}</div></div>
     <div class="stat"><div class="v num">${rec(t)}</div><div class="k">Record now</div></div>
-    <div class="stat"><div class="v num">${wl}</div><div class="k">Average final record</div></div>
+    <div class="stat"><div class="v num">${wl}</div><div class="k">Projected final record</div></div>
     <div class="stat wide"><div class="k">Team rating <b class="num">${sign(t.rating)}</b> points vs. an average team (${ratingRank(t)} of 32)</div></div>
     ${t.qbOptions && t.qbOptions.length ? `<div class="stat wide qbpick"><label class="k" for="qbsel">Starting QB for future games</label>
       <select id="qbsel">${t.qbOptions.map(o => `<option value="${esc(o.id)}"${o.id === t.qbId ? ' selected' : ''}>${esc(o.name)} (${sign(o.pts)} pts)${o.recent ? ' · latest starter' : ''}</option>`).join('')}</select>
-      <div class="k">Points come from each QB's recent efficiency per play; the gap between two quarterbacks is what the model uses. It assumes the latest starter keeps the job, so pick someone else to test a return or a benching.</div></div>` : ''}`;
+      <div class="k">Points are each QB's value from his recent efficiency. The model assumes the latest starter keeps the job; pick another to test a return or a benching.</div></div>` : ''}`;
   const qs = document.getElementById('qbsel');
   if (qs) qs.addEventListener('change', () => {
     const o = t.qbOptions.find(x => x.id === qs.value);
@@ -1303,8 +1403,9 @@ function renderFocus() {
   });
   barChart('#windist', t.winDist.map((p, i) => ({ x: String(i), p, tip: `${i} win${i === 1 ? '' : 's'}: ${pct(p, true)}`, alt: i < t.w })), 'wins');
   const seeds = t.seed.slice(1).map((p, i) => ({ x: '#' + (i + 1), p, tip: `#${i + 1} seed: ${pct(p, true)}` }));
-  seeds.push({ x: 'Out', p: 1 - t.playoff, tip: `Miss playoffs: ${pct(1 - t.playoff, true)}`, alt: true });
   barChart('#seeddist', seeds, 'seed');
+  const miss = 1 - t.playoff;
+  $('#seedout').textContent = miss <= 0 ? (isFinal() ? 'Made the playoffs' : 'Makes the playoffs in every simulation') : miss >= 1 ? (isFinal() ? 'Missed the playoffs' : 'Misses the playoffs in every simulation') : `Misses the playoffs: ${pct(miss)}`;
   renderNext();
 }
 function ratingRank(t) { return cur.teams.slice().sort((a, b) => b.rating - a.rating).findIndex(x => x.abbr === t.abbr) + 1; }
@@ -1313,14 +1414,18 @@ function renderNext() {
   const box = $('#nextgame');
   if (!focus) { box.innerHTML = ''; return; }
   const g = cur.upcoming.find(x => (x.home === focus || x.away === focus) && !(x.id in picks));
-  if (!g) { box.innerHTML = isFinal() ? `<b>Regular season complete.</b> ${playoffStory(focus)}` : '<b>No unpicked games left.</b>'; return; }
+  if (!g) { box.className = 'nextgame plain'; box.innerHTML = isFinal() ? `<b>Regular season complete.</b> ${playoffStory(focus)}` : '<b>No unpicked games left.</b> Clear a what-if pick to see the next game here.'; return; }
+  box.className = 'nextgame';
   const home = g.home === focus, opp = home ? g.away : g.home;
   const pWin = home ? g.pHome : 1 - g.pHome;
-  let s = `<b>Next: ${home ? 'vs.' : 'at'} ${esc(M.CITY[opp])} ${esc(M.NAMES[opp])}</b> · Week ${g.week}, ${when(g)}. Win chance <b class="num">${pct(pWin)}</b>`;
-  const ln = line(g); if (ln) s += ` (market line ${ln})`;
-  s += '.';
-  if (swing && swing.id === g.id) s += ` Playoff chance with a win: <b class="num">${pct(swing.win)}</b>; with a loss: <b class="num">${pct(swing.lose)}</b>.`;
-  box.innerHTML = s;
+  const ln = line(g), sw = swing && swing.id === g.id ? swing : null;
+  box.innerHTML = `<div class="ng-main"><div class="ng-when">Next game · Week ${g.week} · ${when(g)}${g.neutral ? ' · neutral site' : ''}${ln ? ' · line ' + ln : ''}</div>
+      <div class="ng-t">${g.neutral ? 'vs.' : home ? 'vs.' : 'at'} ${esc(M.CITY[opp])} ${esc(M.NAMES[opp])}</div></div>
+    <div class="ng-nums">
+      <div><span class="v num">${pct(pWin)}</span><span class="k">Chance to win</span></div>
+      <div><span class="v num up">${sw ? pct(sw.win) : '…'}</span><span class="k">Playoff chance<br>with a win</span></div>
+      <div><span class="v num down">${sw ? pct(sw.lose) : '…'}</span><span class="k">Playoff chance<br>with a loss</span></div>
+    </div>`;
 }
 
 function barChart(sel, data, kind) {
@@ -1349,27 +1454,41 @@ function barChart(sel, data, kind) {
   s.addEventListener('pointerleave', () => { tip.hidden = true; });
 }
 
+// opt: hidden on phones · r: shown only with "Show QBs and ratings"
 const COLS = [
   { k: 'team', label: 'Team' },
-  { k: 'qbName', label: 'Starting QB' },
   { k: 'rec', label: 'Record' },
-  { k: 'rating', label: 'Market rating' },
-  { k: 'perf', label: 'Our rating' },
-  { k: 'projW', label: 'Avg. wins' },
+  { k: 'projW', label: 'Proj. wins', opt: 1, title: 'Average final win total across the simulated seasons' },
   { k: 'playoff', label: 'Make playoffs', p: 1 },
   { k: 'divWin', label: 'Win division', p: 1 },
-  { k: 'bye', label: '#1 seed', p: 1 },
-  { k: 'confWin', label: 'Win conf.', p: 1, fine: 1 },
+  { k: 'bye', label: '#1 seed', p: 1, opt: 1, title: 'Top seed in the conference and the only first-round bye' },
+  { k: 'confWin', label: 'Win conf.', p: 1, fine: 1, opt: 1, title: 'Win the conference title game and reach the Super Bowl' },
   { k: 'sbWin', label: 'Win Super Bowl', p: 1, fine: 1 },
+  { k: 'qbName', label: 'Starting QB', r: 1, title: 'The latest starter, or your choice (marked *)' },
+  { k: 'rating', label: 'Rating', r: 1, title: 'Points better or worse than an average team on a neutral field, from betting lines. The odds use this rating.' },
+  { k: 'perf', label: 'Score-only rating', r: 1, title: 'A separate rating built from final scores only, for comparison. See How it works at the bottom of the page.' },
 ];
+let showR = !!store.get('nfl.showratings', false);
+function cell(t, col) {
+  const cls = [col.opt ? 'opt' : '', col.r ? 'rt' : ''].join(' ').trim();
+  const c = (inner, extra, style) => `<td class="${[cls, extra].join(' ').trim()}"${style ? ` style="${style}"` : ''}>${inner}</td>`;
+  if (col.k === 'team') return `<td class="team"><button type="button" class="tlink" data-team="${t.abbr}">${chip(t.abbr)}<span class="ab">${t.abbr}</span><span class="nm">${esc(t.name)}</span></button></td>`;
+  if (col.k === 'rec') return c(rec(t), 'num');
+  if (col.k === 'projW') return c(t.projW.toFixed(1), 'num');
+  if (col.k === 'qbName') return c(esc(t.qbName || '—') + (t.abbr in qbPicks ? ' *' : ''), 'dim', 'text-align:left');
+  if (col.k === 'rating') return c(sign(t.rating), 'num');
+  if (col.k === 'perf') return c(sign(t.perf), 'num dim');
+  return c(pct(t[col.k], col.fine), 'pct num', `background:rgba(var(--heat),${(t[col.k] * 0.55).toFixed(3)})`);
+}
 function renderTable() {
   const c = conf || (focus ? team(cur, focus).conf : 'ALL');
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.conf === c)));
-  $('#odds thead').innerHTML = '<tr>' + COLS.map(col => `<th scope="col"><button type="button" data-k="${col.k}" data-active="${sortKey === col.k || (col.k === 'team' && !sortKey)}">${col.label}${sortKey === col.k ? (sortDir < 0 ? ' ↓' : ' ↑') : ''}</button></th>`).join('') + '</tr>';
+  $('#odds').classList.toggle('showr', showR);
+  $('#ratingsbtn').setAttribute('aria-pressed', String(showR));
+  $('#ratingsbtn').textContent = showR ? 'Hide QBs and ratings' : 'Show QBs and ratings';
+  $('#odds thead').innerHTML = '<tr>' + COLS.map(col => `<th scope="col" class="${[col.opt ? 'opt' : '', col.r ? 'rt' : ''].join(' ').trim()}"${col.title ? ` title="${esc(col.title)}"` : ''}><button type="button" data-k="${col.k}" data-active="${sortKey === col.k || (col.k === 'team' && !sortKey)}">${col.label}${sortKey === col.k ? (sortDir < 0 ? ' ↓' : ' ↑') : ''}</button></th>`).join('') + '</tr>';
   const teams = cur.teams.filter(t => c === 'ALL' || t.conf === c);
-  const row = t => `<tr class="${t.abbr === focus ? 'me' : ''}"><td class="team"><button type="button" class="tlink" data-team="${t.abbr}"><span class="ab">${t.abbr}</span><span class="nm">${esc(t.name)}</span></button></td>` +
-    `<td class="dim" style="text-align:left">${esc(t.qbName || '—')}${t.abbr in qbPicks ? ' *' : ''}</td><td class="num">${rec(t)}</td><td class="num">${sign(t.rating)}</td><td class="num dim">${sign(t.perf)}</td><td class="num">${t.projW.toFixed(1)}</td>` +
-    COLS.filter(x => x.p).map(x => `<td class="pct num" style="background:rgba(var(--heat),${(t[x.k] * 0.5).toFixed(3)})">${pct(t[x.k], x.fine)}</td>`).join('') + '</tr>';
+  const row = t => `<tr class="${t.abbr === focus ? 'me' : ''}">` + COLS.map(col => cell(t, col)).join('') + '</tr>';
   let html = '';
   if (!sortKey) {
     for (const d of Object.keys(M.DIV).filter(d => c === 'ALL' || d.startsWith(c))) {
@@ -1382,6 +1501,7 @@ function renderTable() {
   }
   $('#odds tbody').innerHTML = html;
 }
+$('#ratingsbtn').addEventListener('click', () => { showR = !showR; store.set('nfl.showratings', showR); renderTable(); });
 
 function renderWhatIf() {
   const weeks = [...new Set(base.upcoming.map(g => g.week))].sort((a, b) => a - b);
@@ -1398,12 +1518,11 @@ function renderWhatIf() {
     const ln = line(g);
     return `<div class="game${g.home === focus || g.away === focus ? ' me' : ''}">
       <div class="when">${when(g)}${g.neutral ? ' · neutral site' : ''}${ln ? ' · line ' + ln : ''}</div>
-      <div class="pick" role="group" aria-label="${g.away} at ${g.home}">
-        <button type="button" data-g="${g.id}" data-t="${g.away}" aria-pressed="${pk === g.away}"><span class="t">${g.away}</span><span class="p num">${pct(1 - pH)}</span></button>
-        <button type="button" class="mid" data-g="${g.id}" data-t="" aria-pressed="${!pk}">${pk ? 'Unpick' : 'at'}</button>
-        <button type="button" data-g="${g.id}" data-t="${g.home}" aria-pressed="${pk === g.home}"><span class="t">${g.home}</span><span class="p num">${pct(pH)}</span></button>
+      <div class="pick" role="group" aria-label="${esc(M.NAMES[g.away])} ${g.neutral ? 'vs.' : 'at'} ${esc(M.NAMES[g.home])}">
+        <button type="button" data-g="${g.id}" data-t="${g.away}" aria-pressed="${pk === g.away}"><span class="t">${chip(g.away)}${esc(M.NAMES[g.away])}</span><span class="p num">${pct(1 - pH)}</span></button>
+        <button type="button" class="mid" data-g="${g.id}" data-t="" aria-pressed="${!pk}"${pk ? ' aria-label="Clear this pick" title="Clear this pick"' : ''}>${pk ? '✕' : g.neutral ? 'vs' : 'at'}</button>
+        <button type="button" data-g="${g.id}" data-t="${g.home}" aria-pressed="${pk === g.home}"><span class="t">${chip(g.home)}${esc(M.NAMES[g.home])}</span><span class="p num">${pct(pH)}</span></button>
       </div>
-      <div class="probbar" aria-hidden="true"><i style="width:${((1 - pH) * 100).toFixed(1)}%"></i></div>
     </div>`;
   }).join('');
   const n = Object.keys(picks).length;
@@ -1484,7 +1603,7 @@ function poSeeds() { try { return M.seedSeason(season); } catch (e) { return nul
 function poCard(g, seedOf) {
   if (!g) return '<div class="po-game"><div class="row lose"><span class="sd"></span><span class="nm">To be decided</span><span></span></div><div class="row lose"><span class="sd"></span><span class="nm">&nbsp;</span><span></span></div></div>';
   const w = poWinner(g);
-  const row = (t, sc) => `<div class="row${w ? (t === w ? ' win' : ' lose') : ''}${t === focus ? ' me' : ''}"><span class="sd">${seedOf(t) || ''}</span><span class="nm">${esc(M.NAMES[t] || t)}</span><span class="sc">${sc === null || sc === undefined ? '' : sc}</span></div>`;
+  const row = (t, sc) => `<div class="row${w ? (t === w ? ' win' : ' lose') : ''}${t === focus ? ' me' : ''}"><span class="sd">${seedOf(t) || ''}</span><span class="nm">${chip(t)}${esc(M.NAMES[t] || t)}</span><span class="sc">${sc === null || sc === undefined ? '' : sc}</span></div>`;
   return `<div class="po-game">${row(g.away, g.as)}${row(g.home, g.hs)}${w ? '' : `<div class="when">${when(g)}</div>`}</div>`;
 }
 function renderBracket() {
@@ -1537,7 +1656,7 @@ function playoffStory(t) {
 // ---- league overview, team picker, team links ----
 const ALIAS = { LAR: 'LA', JAC: 'JAX', WSH: 'WAS', OAK: 'LV', SD: 'LAC', STL: 'LA' };
 function hashTeam() { const h = decodeURIComponent((location.hash || '').slice(1)).toUpperCase(); const t = ALIAS[h] || h; return M.TEAMS.includes(t) ? t : null; }
-const tl = t => `<button type="button" class="tlink${t === focus ? ' me' : ''}" data-team="${t}">${esc(M.NAMES[t])}</button>`;
+const tl = t => `<button type="button" class="tlink${t === focus ? ' me' : ''}" data-team="${t}">${chip(t)}${esc(M.NAMES[t])}</button>`;
 function setFocus(t, scroll) {
   if (!M.TEAMS.includes(t)) return;
   focus = t; store.set('nfl26.focus', focus);
@@ -1545,7 +1664,7 @@ function setFocus(t, scroll) {
   fillTeams();
   if (!cur) return;                          // first simulation still running; it will render this team
   renderAll(); runSwing(); renderHistory();
-  if (scroll) { const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; $('#focus-sec').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }
+  if (scroll) jumpTo($('#focus-sec'));
 }
 function fillTeams() {
   const opts = M.TEAMS.map(t => [t, M.NAMES[t]]).sort((a, b) => a[1].localeCompare(b[1]));
@@ -1556,7 +1675,7 @@ function renderPicker() {
   pk.hidden = !!focus; fc.hidden = !focus;
   if (focus) return;
   pk.innerHTML = `<p><b>Pick a team to follow.</b> You'll get its playoff chances, likely win total, next game, and how its odds have moved. You can switch anytime, and this browser remembers your choice.</p>
-    <div class="picker-grid">${Object.entries(M.DIV).map(([d, ts]) => `<div class="pd"><span>${d}</span>${ts.map(t => `<button type="button" data-team="${t}">${esc(M.NAMES[t])}</button>`).join('')}</div>`).join('')}</div>`;
+    <div class="picker-grid">${Object.entries(M.DIV).map(([d, ts]) => `<div class="pd"><span>${d}</span>${ts.map(t => `<button type="button" data-team="${t}">${chip(t)}${esc(M.NAMES[t])}</button>`).join('')}</div>`).join('')}</div>`;
 }
 function renderOverview() {
   const sec = $('#ov-sec');
@@ -1577,6 +1696,39 @@ function renderOverview() {
   mvEl.innerHTML = `<div class="mv">${up.map(x => `<div>${tl(x.t)}</div><div class="up">${fmt(x.d)}</div>`).join('')}${dn.map(x => `<div>${tl(x.t)}</div><div class="down">${fmt(x.d)}</div>`).join('')}</div>`;
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-team]'); if (b) setFocus(b.dataset.team, true); });
+
+// ---- section nav ----
+const NAV = $('#secnav');
+const navBtns = () => [...NAV.querySelectorAll('[data-jump]')];
+function updateNav() {
+  navBtns().forEach(b => { const el = document.getElementById(b.dataset.jump); b.hidden = !el || el.hidden; });
+  $('#nav-team').textContent = focus ? M.NAMES[focus] : 'Your team';
+  markNav();
+}
+let navCur = null;
+function markNav() {
+  let on = null;
+  for (const b of navBtns()) { if (b.hidden) continue; if (document.getElementById(b.dataset.jump).getBoundingClientRect().top <= 110) on = b; }
+  if (on === navCur) return;
+  navCur = on;
+  navBtns().forEach(b => b.setAttribute('aria-current', String(b === on)));
+  if (on && (on.offsetLeft < NAV.scrollLeft || on.offsetLeft + on.offsetWidth > NAV.scrollLeft + NAV.clientWidth)) NAV.scrollLeft = on.offsetLeft - 8;
+}
+let navTick = false;
+window.addEventListener('scroll', () => { if (navTick) return; navTick = true; requestAnimationFrame(() => { navTick = false; markNav(); }); }, { passive: true });
+NAV.addEventListener('click', e => {
+  const b = e.target.closest('[data-jump]'); if (!b) return;
+  const el = document.getElementById(b.dataset.jump); if (!el) return;
+  jumpTo(el);
+});
+// scroll to a section; if something above it finished drawing and grew meanwhile, settle on it once scrolling stops
+function jumpTo(el) {
+  el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  let done = false;
+  const fix = () => { if (done) return; done = true; window.removeEventListener('scrollend', fix); const off = el.getBoundingClientRect().top - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0); if (Math.abs(off) > 8) el.scrollIntoView({ block: 'start' }); };
+  window.addEventListener('scrollend', fix);
+  setTimeout(fix, 1200);
+}
 window.addEventListener('hashchange', () => { const t = hashTeam(); if (t && t !== focus) setFocus(t, true); });
 
 function baseP(id) { const g = base.upcoming.find(x => x.id === id); return g ? g.pHome : 0.5; }
