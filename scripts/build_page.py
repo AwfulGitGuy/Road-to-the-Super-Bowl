@@ -23,7 +23,14 @@ const FileDB = {
         const d = await r.json(); return { exists: true, data: () => d };
       } catch (e) { return { exists: false, data: () => undefined }; }
     };
-    return { get, onSnapshot(next) { get().then(next); const t = setInterval(() => get().then(next), 30 * 60 * 1000); return () => clearInterval(t); } };
+    // Check for new data every 5 minutes, and right away when the visitor comes back to the tab.
+    return { get, onSnapshot(next) {
+      let last = 0; const run = () => { last = Date.now(); get().then(next); };
+      run(); const t = setInterval(run, 5 * 60 * 1000);
+      const vis = () => { if (document.visibilityState === 'visible' && Date.now() - last > 60 * 1000) run(); };
+      document.addEventListener('visibilitychange', vis);
+      return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); };
+    } };
   },
 };
 """
