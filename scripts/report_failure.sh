@@ -3,12 +3,13 @@
 set -u
 title="${JOB} failed"
 # Frequent jobs hit harmless hiccups (a slow download, nflverse mid-update), so they only
-# raise the alarm when the previous run also failed. The "Test the alarm" switch skips this.
+# raise the alarm after ALERT_AFTER failed runs in a row. The "Test the alarm" switch skips this.
 if [ "${ALERT_AFTER:-1}" -gt 1 ] && [ "${TEST_ALERT:-false}" != "true" ]; then
-  prev="$(gh run list --workflow "$WORKFLOW_FILE" --limit 10 --json databaseId,status,conclusion \
-          --jq "[.[] | select(.databaseId != ${RUN_ID} and .status == \"completed\" and .conclusion != \"cancelled\" and .conclusion != \"skipped\")][0].conclusion" 2>/dev/null)"
-  if [ "$prev" != "failure" ]; then
-    echo "First failure in a row; an issue will open if the next run fails too."
+  need=$(( ALERT_AFTER - 1 ))          # this many earlier runs must also have failed
+  prev="$(gh run list --workflow "$WORKFLOW_FILE" --limit 20 --json databaseId,status,conclusion \
+          --jq "[.[] | select(.databaseId != ${RUN_ID} and .status == \"completed\" and .conclusion != \"cancelled\" and .conclusion != \"skipped\")][:${need}] | if length == ${need} and all(.conclusion == \"failure\") then \"yes\" else \"no\" end" 2>/dev/null)"
+  if [ "$prev" != "yes" ]; then
+    echo "Not ${ALERT_AFTER} failures in a row yet; an issue will open if this keeps happening."
     exit 0
   fi
 fi
