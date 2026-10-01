@@ -137,7 +137,11 @@ def qb_out():
         if not cnt: continue
         reg = max(cnt, key=lambda q: (cnt[q], order.get(q, -1)))
         if reg == cur or not PLAYER_ID.match(reg): continue
-        wk = nxt if (t, nxt) not in final_weeks else nxt + 1
+        # Injury status is read for the team's next unplayed game (that week's report, or last week's if it isn't out
+        # yet), not for the furthest week with a projected starter, which can be two weeks ahead.
+        open_weeks = sorted({x[1] for x in g if t in (x[4], x[5]) and x[6] is None})
+        if not open_weeks: continue
+        wk = open_weeks[0]
         rs = ros.get((wk, reg)) or ros.get((wk - 1, reg)) or ''
         rep = inj.get((wk, reg)) or inj.get((wk - 1, reg)) or ('', '')
         if rs == 'RES': cls, status = 'ir', 'Injured reserve'
