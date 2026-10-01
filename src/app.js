@@ -517,12 +517,21 @@ function playoffStory(t) {
 }
 
 // ---- who to root for (from data/rooting-YEAR.json, computed by the refresh) ----
-let ROOT = null, rootToken = '';
+let ROOT = null, rootToken = '', rootGoal = null;
+const GOALS = {
+  playoff: { label: 'Make playoffs', text: 'chance of making the playoffs' },
+  div: { label: 'Win division', text: 'chance of winning the division' },
+  bye: { label: '#1 seed', text: 'chance at the #1 seed' },
+  sb: { label: 'Win Super Bowl', text: 'chance of winning the Super Bowl' },
+  conf: { label: 'Reach Super Bowl', text: 'chance of reaching the Super Bowl' },
+};
 function validRooting(d) {
   try {
-    const okT = o => o && typeof o === 'object' && M.TEAMS.every(t => Array.isArray(o[t]) && o[t].length === 3 && o[t].every(v => Number.isInteger(v) && v >= 0 && v <= 1000));
-    return !!d && d.season === YEAR && Number.isInteger(d.week) && typeof d.basedOn === 'string' && okT(d.base) && Array.isArray(d.games) && d.games.length <= 20 &&
-      d.games.every(g => RX.gid.test(g.id) && M.TEAMS.includes(g.away) && M.TEAMS.includes(g.home) && Number.isInteger(g.pHome) && okT(g.ifHome) && okT(g.ifAway));
+    const g = d && d.goals, n = Array.isArray(g) ? g.length : 0;
+    const okT = o => o && typeof o === 'object' && M.TEAMS.every(t => Array.isArray(o[t]) && o[t].length === n && o[t].every(v => Number.isInteger(v) && v >= 0 && v <= 1000));
+    return !!d && d.season === YEAR && n >= 1 && n <= 5 && g.every(x => x in GOALS) && ['regular', 'playoffs'].includes(d.phase) &&
+      Number.isInteger(d.phase === 'regular' ? d.week : d.round) && typeof d.basedOn === 'string' && okT(d.base) && Array.isArray(d.games) && d.games.length <= 20 &&
+      d.games.every(x => RX.gid.test(x.id) && M.TEAMS.includes(x.away) && M.TEAMS.includes(x.home) && okT(x.ifHome) && okT(x.ifAway));
   } catch (e) { return false; }
 }
 async function loadRooting() {
@@ -533,26 +542,37 @@ async function loadRooting() {
 }
 function renderRoot() {
   const box = $('#rootbox');
-  const ok = focus && ROOT && ROOT.season === YEAR && ROOT.basedOn === season.updatedAt && !isFinal();
-  box.hidden = !ok; if (!ok) return;
-  const nm = M.NAMES[focus], b = ROOT.base[focus];
-  const m = b[0] >= 950 && b[1] < 950 ? 1 : b[0] >= 950 ? 2 : 0;            // playoffs, else division, else #1 seed
-  const goal = ['playoff chance', 'chance to win the division', 'chance at the #1 seed'][m];
-  const rowsById = Object.fromEntries(seasonRows().map(g => [g.id, g]));
+  const ok = focus && ROOT && ROOT.season === YEAR && ROOT.basedOn === season.updatedAt && (ROOT.phase === 'playoffs' || !isFinal());
+  const gi = ok ? Object.fromEntries(ROOT.goals.map((g, i) => [g, i])) : {};
+  const b = ok ? ROOT.base[focus] : null;
+  const others = ok ? ROOT.games.filter(g => g.home !== focus && g.away !== focus) : [];
+  if (!ok || !others.length || (ROOT.phase === 'playoffs' && b.every(v => v === 0))) { box.hidden = true; return; }   // nothing to show, or the team is out
+  box.hidden = false;
+  // Default goal: in the regular season, the first one that isn't settled; in the playoffs, reaching the Super Bowl
+  // while another game in the team's conference is still to be played, otherwise winning it.
+  let auto;
+  if (ROOT.phase === 'regular') auto = ['playoff', 'div', 'bye'].find(g => b[gi[g]] < 950) || 'sb';
+  else { const conf = team(cur, focus).conf; auto = others.some(g => team(cur, g.home).conf === conf) ? 'conf' : 'sb'; }
+  const goal = rootGoal && rootGoal in gi ? rootGoal : auto, k = gi[goal];
+  const nm = M.NAMES[focus];
+  const when2 = Object.fromEntries([...seasonRows(), ...poGames()].map(g => [g.id, g]));
   const f1 = v => (v / 10).toFixed(1) + '%';
-  const list = ROOT.games.filter(g => g.home !== focus && g.away !== focus).map(g => {
-    const d = g.ifHome[focus][m] - g.ifAway[focus][m], root = d >= 0 ? g.home : g.away, vs = d >= 0 ? g.away : g.home;
-    return { g, d: Math.abs(d), root, vs, yes: (d >= 0 ? g.ifHome : g.ifAway)[focus][m], no: (d >= 0 ? g.ifAway : g.ifHome)[focus][m] };
+  const list = others.map(g => {
+    const d = g.ifHome[focus][k] - g.ifAway[focus][k], root = d >= 0 ? g.home : g.away, vs = d >= 0 ? g.away : g.home;
+    return { g, d: Math.abs(d), root, vs, yes: (d >= 0 ? g.ifHome : g.ifAway)[focus][k], no: (d >= 0 ? g.ifAway : g.ifHome)[focus][k] };
   }).sort((x, y) => y.d - x.d);
   const top = list.filter(x => x.d >= 5).slice(0, 6);
   const picked = Object.keys(picks).length + Object.keys(qbPicks).length > 0;
-  box.innerHTML = `<h3>Who to root for in Week ${ROOT.week}</h3>
-    <p class="k-note">Other games this week, ranked by how much each result changes the ${esc(nm)}' ${goal}.${picked ? ' Based on the odds without your What If picks.' : ''}</p>
-    ${top.length ? `<ul class="rootlist">${top.map(x => { const r = rowsById[x.g.id] || x.g;
+  const roundLabel = ROOT.phase === 'regular' ? `Week ${ROOT.week}` : `the ${ROUNDS[ROOT.round] || 'next'} round`;
+  box.innerHTML = `<div class="h3row"><h3>Who to root for in ${roundLabel}</h3>
+      <div class="seg sm" role="group" aria-label="Goal">${ROOT.goals.map(g => `<button type="button" data-goal="${g}" aria-pressed="${g === goal}">${GOALS[g].label}</button>`).join('')}</div></div>
+    <p class="k-note">Other games ${ROOT.phase === 'regular' ? 'this week' : 'in this round'}, ranked by how much each result changes the ${esc(nm)}' ${GOALS[goal].text}.${picked ? ' Based on the odds without your What If picks.' : ''}</p>
+    ${top.length ? `<ul class="rootlist">${top.map(x => { const r = when2[x.g.id] || x.g;
       return `<li><div class="rt"><span class="who">${chip(x.root)}${esc(M.NAMES[x.root])} <span class="ov">over the ${esc(M.NAMES[x.vs])}</span></span><span class="gain">+${(x.d / 10).toFixed(1)} pts</span></div>
-        <div class="det">${f1(x.yes)} if the ${esc(M.NAMES[x.root])} win, ${f1(x.no)} if the ${esc(M.NAMES[x.vs])} do · ${when(r)}</div></li>`; }).join('')}</ul>`
-      : `<p class="note">No other game this week changes the ${esc(nm)}' ${goal} by more than half a point.</p>`}`;
+        <div class="det">${f1(x.yes)} if the ${esc(M.NAMES[x.root])} win, ${f1(x.no)} if the ${esc(M.NAMES[x.vs])} do${r.date ? ' · ' + when(r) : ''}</div></li>`; }).join('')}</ul>`
+      : `<p class="note">No other game ${ROOT.phase === 'regular' ? 'this week' : 'in this round'} changes the ${esc(nm)}' ${GOALS[goal].text} by more than half a point.</p>`}`;
 }
+document.addEventListener('click', e => { const b = e.target.closest('#rootbox [data-goal]'); if (b) { rootGoal = b.dataset.goal; renderRoot(); } });
 
 // ---- projected playoff bracket (during the regular season) ----
 function renderProjected() {

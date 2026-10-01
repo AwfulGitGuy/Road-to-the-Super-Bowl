@@ -313,6 +313,13 @@ const NFLModel = (() => {
         if (a === undefined || h === undefined) continue;
         poWin.set(Math.min(a, h) * 64 + Math.max(a, h), hs > as ? h : a);
       }
+      // Chosen winners for scheduled playoff games (used by "who to root for" during the playoffs)
+      for (const r of season.playoffs) {
+        const pick = opts.poPicks && opts.poPicks[r[pix.id]];
+        const a = IDX[r[pix.away]], h = IDX[r[pix.home]];
+        if (!pick || a === undefined || h === undefined || (pick !== r[pix.away] && pick !== r[pix.home])) continue;
+        poWin.set(Math.min(a, h) * 64 + Math.max(a, h), IDX[pick]);
+      }
     }
     const qbvPO = t => (useQB && !qbPicks[TEAMS[t]] ? val(t, starter(t), lastWeek + 2) : qbv(t));   // playoffs: end-of-season value
     const L = fit.latest;                 // latest week with posted lines
@@ -363,9 +370,10 @@ const NFLModel = (() => {
         const str = t => fit.r[t] + shock[t] + qbvPO(t);
         const play = (hi, lo, neutral) => {
           const real = poWin.get(Math.min(hi, lo) * 64 + Math.max(hi, lo));   // already played for real
+          const u = rP();                       // drawn either way, so fixing one result leaves the others' draws unchanged
           if (real !== undefined) return real;
           const p = Phi((str(hi) - str(lo) + (neutral ? 0 : fit.hfa)) / sd);
-          return rP() < p ? hi : lo;
+          return u < p ? hi : lo;
         };
         const seedOf = t => seeds.indexOf(t);
         let alive = [seeds[0], play(seeds[1], seeds[6]), play(seeds[2], seeds[5]), play(seeds[3], seeds[4])];
@@ -379,7 +387,8 @@ const NFLModel = (() => {
       const hosts = opts.sbHosts || [];                                   // teams whose home stadium hosts the Super Bowl
       const sofi = (hosts.includes(TEAMS[champs.AFC]) ? fit.hfa / 2 : 0) - (hosts.includes(TEAMS[champs.NFC]) ? fit.hfa / 2 : 0);
       const realSB = poWin.get(Math.min(champs.AFC, champs.NFC) * 64 + Math.max(champs.AFC, champs.NFC));
-      const winner = realSB !== undefined ? realSB : Phi((fit.r[champs.AFC] + shock[champs.AFC] + qbvPO(champs.AFC) - fit.r[champs.NFC] - shock[champs.NFC] - qbvPO(champs.NFC) + sofi) / sd) > rP() ? champs.AFC : champs.NFC;
+      const uSB = rP();
+      const winner = realSB !== undefined ? realSB : Phi((fit.r[champs.AFC] + shock[champs.AFC] + qbvPO(champs.AFC) - fit.r[champs.NFC] - shock[champs.NFC] - qbvPO(champs.NFC) + sofi) / sd) > uSB ? champs.AFC : champs.NFC;
       acc.sb[winner]++;
       if (tk) for (let k = 0; k < tk; k++) { const hw = tW[k]; T.hw[k] += hw; for (let q = 0; q < 3; q++) if (tMade[q]) T.goal[q][hw ? 'h' : 'a'][k]++; }
     }
