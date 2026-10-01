@@ -8,7 +8,7 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | --- | --- |
 | `index.html` | The whole page, assembled from `src/` by `scripts/build_page.py`. It reads its data from the `data/` folder next to it. |
 | `src/` | The page's source: `model.js` (the simulation), `app.js` (the page), `page_head.html` and `page_body.html` (layout and styles), and the score-only rating (`perf.js`, `perf_const.json`). **Edit these, then run `python scripts/build_page.py`**, rather than editing `index.html` directly. |
-| `data/rooting-YYYY.json` | "Who to root for": every team's chances after each result of the coming week's games. Rebuilt by the refresh. |
+| `data/rooting-YYYY.json` | "Who to root for": every team's chances (make playoffs, win division, #1 seed, win Super Bowl) after each result of the coming week's games; during the playoffs, chances to reach and win the Super Bowl after each result of the round's other games. Rebuilt by the refresh. |
 | `data/config.json` | Which season is current, its Super Bowl, number of games, and when the refresh stops for the year. |
 | `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats, playoff games. |
 | `data/priors-YYYY.json` | Each season's starting values, carried over from the season before. |
