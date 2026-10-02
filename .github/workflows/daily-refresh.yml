@@ -1,8 +1,7 @@
 name: Data refresh
 
 on:
-  # Started by an outside timer (cron-job.org) at :07, :17, :37 and :47 past every hour, August-February, Eastern time
-  # (just after nflverse's usual update times of :05, :15, :35 and :45).
+  # Started by an outside timer (cron-job.org) every 10 minutes (:07, :17, :27, :37, :47, :57), August-February, Eastern time.
   # GitHub's own schedules were removed: they started runs hours late, and GitHub switches them off after
   # 60 days without repository activity. See docs/MAINTAINING.md.
   workflow_dispatch:         # adds a "Run workflow" button on the Actions tab
@@ -48,7 +47,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           RUN_ID: ${{ github.run_id }}
           WORKFLOW_FILE: daily-refresh.yml
-          ALERT_AFTER: '3'           # open an issue only after three failed runs in a row (about 40 minutes)
+          ALERT_AFTER: '4'           # open an issue only after four failed runs in a row (30-40 minutes)
           TEST_ALERT: ${{ inputs.test_alert }}
         run: bash scripts/report_failure.sh
       - name: Close any open problem report
