@@ -69,6 +69,7 @@ Likely failures, most likely first:
 | No new "Data refresh" runs in the Actions tab, and no emails | The cron-job.org jobs were paused or the account lapsed | Log in to cron-job.org and turn the jobs back on |
 | A "Data refresh failed" issue mentioning a download | nflverse is down or moved a file | Usually fixes itself; if it lasts more than a day, check nflverse's GitHub for announcements |
 | A "Data refresh failed" issue listing failed checks (unknown team, game count, missing scores) | nflverse changed its data, or a game was postponed | Read the listed problem; a postponed game clears once nflverse moves its date |
+| GitHub emails that a run failed with "The job was not acquired by Runner… even after multiple attempts" | GitHub itself had no machines free (an outage or capacity problem on GitHub's side) | Nothing to do: later runs catch up once GitHub recovers, and nothing is lost. These emails come from GitHub for every failed run; the issue alarm only opens after four failures in a row |
 | A failure in "Set up Python" or a Python error after GitHub updates its servers | A newer Python changed something | The jobs use the newest Python 3 on purpose; the error message shows the line to fix |
 
 To test changes on your own computer, see "Running it on your own computer" below.

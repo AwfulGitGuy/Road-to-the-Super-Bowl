@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0, pinned to an exact commit
+        with:
+          ref: main            # start from the newest saved data, even if this run waited in line
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0, pinned to an exact commit
         with:
           python-version: '3.x'      # the newest Python 3 available; the scripts use only Python's built-in tools
@@ -38,7 +40,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add data
-          if git diff --cached --quiet; then echo "No changes to save."; else git commit -m "Data refresh" && git pull --rebase --quiet && git push; fi
+          if git diff --cached --quiet; then echo "No changes to save."; else git commit -m "Data refresh" && git pull --rebase -X theirs --quiet && git push; fi
       - name: Report a problem
         if: failure()
         env:
