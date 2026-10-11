@@ -238,7 +238,7 @@ function qbNote(t) {
   if (!o || t.abbr in qbPicks) return "Points are each QB's value from his recent efficiency. The model assumes the latest starter keeps the job unless the regular starter is injured; pick another QB to test a change.";
   const who = esc(o.name || 'The regular starter'), why = info ? esc([info.status, info.injury].filter(Boolean).join(', ').toLowerCase()) : '';
   if (o.cls === 'ir') return `${who} is on injured reserve${info && info.injury ? ` (${esc(info.injury.toLowerCase())})` : ''}, so the odds assume ${esc(cur)} keeps starting. Pick ${who} above to see his return.`;
-  return `${who} is ${why || 'injured'}. The odds assume ${esc(cur)} starts Week ${o.listed}, then give ${who} a <b class="num">${pct(o.pNext)}</b> chance of being back the week after, rising to <b class="num">${pct(o.pEnd)}</b> by late in the season (how often injured starters returned, 2012–2025). Pick a QB above to lock in either one.`;
+  return `${who} is ${why || 'injured'}. The odds assume ${esc(cur)} starts Week ${o.listed}, then give ${who} a <b class="num">${pct(o.pNext)}</b> chance of being back the week after${o.pEnd > o.pNext + 0.005 ? `, rising to <b class="num">${pct(o.pEnd)}</b> by late in the season` : ' and each week after that'} (how often injured starters returned, 2012–2025). Pick a QB above to lock in either one.`;
 }
 function ratingRank(t) { return cur.teams.slice().sort((a, b) => b.rating - a.rating).findIndex(x => x.abbr === t.abbr) + 1; }
 

@@ -45,6 +45,7 @@ const NFLModel = (() => {
     ir: [0],     // injured reserve: returns are real but rare, and blending them in didn't help in testing
     head: [0.412, 0.469, 0.556, 0.6],
     other: [0.285, 0.329, 0.399, 0.442, 0.461, 0.475],
+    q: [0.47],   // listed Questionable but not starting (other injuries): back about half the time, any week (2012-2025)
   };
 
   // Standard normal CDF
@@ -258,9 +259,10 @@ const NFLModel = (() => {
       for (const [ab, o] of Object.entries(season.qbOut)) {
         const t = IDX[ab];
         if (t === undefined || !o || !o.qb || qbPicks[ab] || o.qb === qs.recent[t]) continue;
+        if (qs.now(o.qb) <= qs.now(qs.recent[t])) continue;            // only a return of a better QB changes anything
         let listed = 0;
         for (const g of games) if ((g.h === t && g.hq) || (g.a === t && g.aq)) listed = Math.max(listed, g.week);
-        out[t] = { qb: o.qb, cls: o.cls, listed };
+        out[t] = { qb: o.qb, cls: o.cls === 'other' && o.status === 'Questionable' ? 'q' : o.cls, listed };
       }
     }
     const val = (t, q, wk) => {                                   // expected QB value for team t in week wk

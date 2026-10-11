@@ -97,9 +97,11 @@ out = {"season": int(year), "updatedAt": datetime.datetime.now(datetime.timezone
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
        "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
 if sb_site: out['sbSite'] = sb_site
-# Injured regular starters. A team's regular starter is the QB with the most starts in its last 8 games of
-# last season plus this season's final games. If someone else is listed to start next and the regular is
-# Out or Doubtful on the injury report (or on injured reserve), the page blends in his chance of returning.
+# Injured regular starters. A team's regular starter is the QB with the most starts in the team's last 8
+# games (counting back into last season early on). If someone else is listed to start next and the regular is
+# Out, Doubtful or Questionable on the injury report (or on injured reserve), the page blends in his chance
+# of returning (the model skips it if he isn't better than the QB who's playing).
+# Questionable starters who sit come back faster, so the page gives them their own return rate.
 # Tested on 2012-2025 (see docs/MAINTAINING.md). Optional: any problem here leaves the list empty.
 INJ_OK = re.compile(r'^[A-Za-z /,.()-]{0,40}$')
 def qb_out():
@@ -130,12 +132,14 @@ def qb_out():
         listed = sorted(w for (tt, w) in start if tt == t)
         if not listed: continue
         nxt = listed[-1]; cur = start[(t, nxt)]
+        # The last 8 games played, reaching back into last season's final games early on. Ties go to whoever has
+        # more starts this season, then to whoever started more recently.
+        this = [start[(t, w)] for w in listed if (t, w) in final_weeks]
+        seq = prev_starts.get(t, []) + this
         cnt, order = {}, {}
-        for q in prev_starts.get(t, [])[-8:]: cnt[q] = cnt.get(q, 0) + 1
-        for i, w in enumerate(listed):
-            if (t, w) in final_weeks: cnt[start[(t, w)]] = cnt.get(start[(t, w)], 0) + 1; order[start[(t, w)]] = i
+        for i, q in enumerate(seq[-8:]): cnt[q] = cnt.get(q, 0) + 1; order[q] = i
         if not cnt: continue
-        reg = max(cnt, key=lambda q: (cnt[q], order.get(q, -1)))
+        reg = max(cnt, key=lambda q: (cnt[q], this.count(q), order[q]))
         if reg == cur or not PLAYER_ID.match(reg): continue
         # Injury status is read for the team's next unplayed game (that week's report, or last week's if it isn't out
         # yet), not for the furthest week with a projected starter, which can be two weeks ahead.
@@ -145,7 +149,7 @@ def qb_out():
         rs = ros.get((wk, reg)) or ros.get((wk - 1, reg)) or ''
         rep = inj.get((wk, reg)) or inj.get((wk - 1, reg)) or ('', '')
         if rs == 'RES': cls, status = 'ir', 'Injured reserve'
-        elif rep[0] in ('Out', 'Doubtful') or (rs == 'INA' and rep[0]):
+        elif rep[0] in ('Out', 'Doubtful', 'Questionable') or (rs == 'INA' and rep[0]):   # questionable and not starting
             s_ = rep[1].lower(); cls = 'head' if ('concussion' in s_ or 'head' in s_) else 'other'; status = rep[0] or 'Inactive'
         else: continue                       # not hurt: a benching or trade, so the new starter is assumed to stay
         injury = rep[1] if INJ_OK.match(rep[1] or '') else ''
