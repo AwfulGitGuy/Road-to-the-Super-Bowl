@@ -5,6 +5,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'data')
 SCRIPTS = os.path.join(ROOT, 'scripts')
 GAMES_URL = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv'
+
+
+def latest_games_url():
+    """The schedule/scores file at nflverse's newest commit. GitHub's file server caches the plain 'master'
+    address for up to 5 minutes, so a run could get a copy that's minutes old; an address pinned to the
+    newest commit is new each time nflverse updates, so it's never stale. Falls back to the plain address."""
+    try:
+        out = subprocess.run(['git', 'ls-remote', 'https://github.com/nflverse/nfldata', 'refs/heads/master'],
+                             capture_output=True, text=True, timeout=30).stdout.split()
+        if out and len(out[0]) == 40 and all(c in '0123456789abcdef' for c in out[0]):
+            return GAMES_URL.replace('/master/', f'/{out[0]}/')
+    except Exception:
+        pass
+    return GAMES_URL
 STATS_URL = 'https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{year}.csv'
 INJURIES_URL = 'https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_{year}.csv'
 ROSTERS_URL = 'https://github.com/nflverse/nflverse-data/releases/download/weekly_rosters/roster_weekly_{year}.csv'

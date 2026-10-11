@@ -7,7 +7,7 @@ Run from anywhere:  python scripts/new_season.py
   (team list, games per team, divisions) so the page can be updated first.
 """
 import csv, json, os, shutil
-from common import DATA, GAMES_URL, STATS_URL, download, load, run, workdir
+from common import DATA, GAMES_URL, latest_games_url, STATS_URL, download, load, run, workdir
 
 # First, extend the Super Bowl site list from Wikipedia (adds newly awarded sites; never overwrites). Optional.
 try:
@@ -19,7 +19,7 @@ except Exception as e:
 cfg = load('config.json')
 prev_year = cfg['current']; year = prev_year + 1
 tmp = workdir()
-download(GAMES_URL, os.path.join(tmp, 'games.csv'))
+download(latest_games_url(), os.path.join(tmp, 'games.csv'))
 rows = [r for r in csv.DictReader(open(os.path.join(tmp, 'games.csv'))) if r['season'] == str(year) and r['game_type'] == 'REG']
 if not rows:
     print(f'The {year} schedule is not published yet; nothing to do.')

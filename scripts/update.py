@@ -5,7 +5,7 @@ Exits with an error (so GitHub Actions marks the run failed and emails you) if a
 download fails or the safety checks don't pass. Nothing is saved in that case.
 """
 import datetime, os, shutil
-from common import DATA, GAMES_URL, INJURIES_URL, ROSTERS_URL, STATS_URL, download, load, run, try_download, workdir
+from common import DATA, GAMES_URL, latest_games_url, INJURIES_URL, ROSTERS_URL, STATS_URL, download, load, run, try_download, workdir
 
 cfg = load('config.json')
 year, games = cfg['current'], cfg['games']
@@ -21,7 +21,7 @@ if today > cfg.get('endDate', '9999'):
     raise SystemExit(0)
 
 tmp = workdir()
-download(GAMES_URL, os.path.join(tmp, 'games.csv'))
+download(latest_games_url(), os.path.join(tmp, 'games.csv'))
 download(STATS_URL.format(year=year), os.path.join(tmp, 'qb.csv'), required=False)
 # Injury reports and roster status, used to spot an injured regular starter. Optional: without them
 # the model simply assumes the latest starter keeps playing.
