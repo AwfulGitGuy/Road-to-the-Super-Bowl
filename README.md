@@ -30,6 +30,10 @@ Schedules, scores, betting lines, and player stats come from the free, volunteer
 
 This is an independent fan project with no connection to the NFL or its teams.
 
+## Copyright
+
+© 2026 AwfulGitGuy. All rights reserved. The code is public only so GitHub Pages can host the site. It is not open source, and it may not be copied, reused, or hosted elsewhere without permission. See [LICENSE](LICENSE).
+
 ---
 
 Maintaining the site (schedules, alerts, the yearly setup, running it locally): see [docs/MAINTAINING.md](docs/MAINTAINING.md).
