@@ -97,11 +97,14 @@ out = {"season": int(year), "updatedAt": datetime.datetime.now(datetime.timezone
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
        "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
 if sb_site: out['sbSite'] = sb_site
-# Injured regular starters. A team's regular starter is the QB with the most starts in the team's last 8
-# games (counting back into last season early on). If someone else is listed to start next and the regular is
-# Out, Doubtful or Questionable on the injury report (or on injured reserve), the page blends in his chance
-# of returning (the model skips it if he isn't better than the QB who's playing).
+# Injured starters. For each team, the QB with the most starts in its last 8 games (counting back into last
+# season early on; ties go to more starts this season, then the more recent starter) is listed when someone else
+# is listed to start next and he is Out, Doubtful or Questionable on the injury report (or on injured reserve).
+# The page blends in his chance of returning, but only if he rates better than the QB who's playing.
 # Questionable starters who sit come back faster, so the page gives them their own return rate.
+# The list can include a fill-in who got hurt after the starter he replaced came back (Seattle, October 2026);
+# the page ignores him unless he rates better than that starter. A start-count filter for this case was tried
+# and dropped: on 2012-2025 it also hid 5 real starters' returns.
 # Tested on 2012-2025 (see docs/MAINTAINING.md). Optional: any problem here leaves the list empty.
 INJ_OK = re.compile(r'^[A-Za-z /,.()-]{0,40}$')
 def qb_out():
@@ -141,10 +144,6 @@ def qb_out():
         if not cnt: continue
         reg = max(cnt, key=lambda q: (cnt[q], this.count(q), order[q]))
         if reg == cur or not PLAYER_ID.match(reg): continue
-        # A starter back from his own injury isn't replacing anyone: if the QB listed next has more starts than
-        # the "regular" over the last 17 games, the regular was really his fill-in (e.g. a backup who got hurt later).
-        c17 = seq[-17:]
-        if c17.count(cur) > c17.count(reg): continue
         # Injury status is read for the team's next unplayed game (that week's report, or last week's if it isn't out
         # yet), not for the furthest week with a projected starter, which can be two weeks ahead.
         open_weeks = sorted({x[1] for x in g if t in (x[4], x[5]) and x[6] is None})
@@ -161,7 +160,7 @@ def qb_out():
     return out
 try:
     out['qbOut'] = qb_out()
-    if out['qbOut']: print('Injured regular starters:', ', '.join(f"{t} {names.get(o['qb']) or o['qb']} ({o['status']}{', ' + o['injury'] if o['injury'] else ''})" for t, o in out['qbOut'].items()))
+    if out['qbOut']: print('Injured recent starters:', ', '.join(f"{t} {names.get(o['qb']) or o['qb']} ({o['status']}{', ' + o['injury'] if o['injury'] else ''})" for t, o in out['qbOut'].items()))
 except Exception as e:
     out['qbOut'] = {}; print(f'NOTE: skipped the injured-starter check ({e}).')
 # Keep the previous "updated" time when nothing else changed, so an unchanged run saves nothing.
