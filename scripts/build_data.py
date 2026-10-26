@@ -141,6 +141,10 @@ def qb_out():
         if not cnt: continue
         reg = max(cnt, key=lambda q: (cnt[q], this.count(q), order[q]))
         if reg == cur or not PLAYER_ID.match(reg): continue
+        # A starter back from his own injury isn't replacing anyone: if the QB listed next has more starts than
+        # the "regular" over the last 17 games, the regular was really his fill-in (e.g. a backup who got hurt later).
+        c17 = seq[-17:]
+        if c17.count(cur) > c17.count(reg): continue
         # Injury status is read for the team's next unplayed game (that week's report, or last week's if it isn't out
         # yet), not for the furthest week with a projected starter, which can be two weeks ahead.
         open_weeks = sorted({x[1] for x in g if t in (x[4], x[5]) and x[6] is None})
