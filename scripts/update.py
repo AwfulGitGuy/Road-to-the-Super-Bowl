@@ -22,7 +22,10 @@ if today > cfg.get('endDate', '9999'):
 
 tmp = workdir()
 download(latest_games_url(), os.path.join(tmp, 'games.csv'))
-download(STATS_URL.format(year=year), os.path.join(tmp, 'qb.csv'), required=False)
+# QB stats come from a different GitHub server than the scores and change only overnight, so a failed
+# download here doesn't stop the run: build_data.py keeps the stats already saved (November 2026: this file's
+# server timed out for 2+ hours and held back every update).
+try_download(STATS_URL.format(year=year), os.path.join(tmp, 'qb.csv'))
 # Injury reports and roster status, used to spot an injured regular starter. Optional: without them
 # the model simply assumes the latest starter keeps playing.
 env = {}

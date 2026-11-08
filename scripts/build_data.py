@@ -62,6 +62,13 @@ if os.path.exists(qbsrc) and os.path.getsize(qbsrc) > 1000:
         if plays <= 0 or not PLAYER_ID.match(r['player_id']) or not GAME_ID.match(r['game_id']): continue
         qb.append([r['game_id'], r['player_id'], int(plays), round(fl('passing_epa') + fl('rushing_epa'), 3)])
         names.setdefault(r['player_id'], clean_name(r['player_display_name']))
+# If the stats file couldn't be downloaded (update.py leaves it missing), keep the QB stats already saved
+# rather than holding back new scores; the next run that gets the file brings them up to date.
+if not os.path.exists(qbsrc) and prev_path and os.path.exists(prev_path):
+    _p = json.load(open(prev_path)); _p = _p.get('data', _p)
+    qb = [r for r in _p.get('qbGames', []) if isinstance(r, list) and len(r) == 4]
+    for k, v in (_p.get('qbNames') or {}).items(): names.setdefault(k, v)
+    print(f'NOTE: no QB stats file this run; kept the {len(qb)} saved QB game lines.')
 problems = bad[:5]
 if len(g) != expected: problems.append(f'expected {expected} games, found {len(g)}')
 tomorrow = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
