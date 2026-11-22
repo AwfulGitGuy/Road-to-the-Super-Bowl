@@ -13,7 +13,6 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats, playoff games. |
 | `data/priors-YYYY.json` | Each season's starting values, carried over from the season before. |
 | `data/super_bowl_hosts.json` | Where each Super Bowl is played. **The one file you update by hand, once a year (optional).** |
-| `data/last_check.txt` | A small monthly marker (left over from when GitHub's own schedules were used; harmless). |
 | `scripts/update.py` | The refresh: downloads the latest nflverse files and rebuilds the current season's data. |
 | `scripts/new_season.py` | The yearly setup: once next season's schedule is published, builds its starting values and data files. |
 | `scripts/build_data.py`, `scripts/rollover.py`, `scripts/common.py` | The work behind those two, including the safety checks. |

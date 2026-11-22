@@ -11,11 +11,6 @@ cfg = load('config.json')
 year, games = cfg['current'], cfg['games']
 today = datetime.date.today().isoformat()
 
-# Once a month, touch a small file so GitHub sees activity and keeps the schedules on.
-if datetime.date.today().day == 1:
-    with open(os.path.join(DATA, 'last_check.txt'), 'w') as f:
-        f.write(today + '\n')
-
 if today > cfg.get('endDate', '9999'):
     print(f'The {year} regular season is over; nothing to refresh until the new season is set up.')
     raise SystemExit(0)
