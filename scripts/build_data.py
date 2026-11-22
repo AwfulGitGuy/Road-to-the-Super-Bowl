@@ -18,7 +18,17 @@ def check_row(r):
     if r['home_team'] not in TEAMS or r['away_team'] not in TEAMS: bad.append(f"{r['game_id']}: unknown team code")
     if not GAME_ID.match(r['game_id']): bad.append(f"unexpected game id {r['game_id'][:30]!r}")
     if not DATE.match(r['gameday']) or not TIME.match(r['gametime'] if r['gametime'] not in ('NA',) else ''): bad.append(f"{r['game_id']}: unexpected date/time")
+# Cancelled games (data/cancelled_games.json): listed by nflverse but never to be played, so they're left out.
+try:
+    _cp = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'cancelled_games.json')
+    cancelled = {x for x in json.load(open(_cp)).get('games', []) if isinstance(x, str) and GAME_ID.match(x)} if os.path.exists(_cp) else set()
+except Exception as e:
+    cancelled = set(); print(f'NOTE: could not read data/cancelled_games.json ({e}).')
 rows = [r for r in csv.DictReader(open(src)) if r['season'] == year and r['game_type'] == 'REG']
+skipped = [r['game_id'] for r in rows if r['game_id'] in cancelled]
+if skipped: print(f'NOTE: left out {len(skipped)} cancelled game(s): {", ".join(skipped)}')
+rows = [r for r in rows if r['game_id'] not in cancelled]
+expected -= len(skipped)
 for r in rows: check_row(r)
 g = []; names = {}
 nz = lambda v: v if v not in ('', 'NA') else None
@@ -88,7 +98,9 @@ for x in g:
 now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 recent_lo, stale_hi = (now - datetime.timedelta(days=30)).strftime('%Y-%m-%d'), (now - datetime.timedelta(days=2)).strftime('%Y-%m-%d')
 stale = [x[0] for x in g + po if x[6] is None and recent_lo <= x[2] <= stale_hi]
-if stale: problems.append(f'{len(stale)} game(s) played 2+ days ago still have no score (e.g. {stale[0]}); nflverse may have stopped updating, or a game was postponed')
+# This one doesn't stop the save (new scores for other games still go out); it raises the alarm separately.
+warnings = []
+if stale: warnings.append(f'{len(stale)} game(s) played 2+ days ago still have no score (e.g. {stale[0]}); nflverse may have stopped updating, or a game was postponed or cancelled (a cancelled game can be added to data/cancelled_games.json)')
 final = sum(1 for x in g if x[6] is not None)
 qbgames = len(set(r[0] for r in qb))
 if final >= 16 and qbgames < final * 0.8: problems.append(f'QB stats cover only {qbgames} of {final} final games')
@@ -221,6 +233,9 @@ if prev_path and os.path.exists(prev_path):
     if {k: v for k, v in old.items() if k != 'updatedAt'} == json.loads(json.dumps({k: v for k, v in out.items() if k != 'updatedAt'})):
         out['updatedAt'] = old.get('updatedAt', out['updatedAt']); print('No data changes since the last run.')
 json.dump(out, open('season.json', 'w'), separators=(',', ':'))
+if warnings:
+    print('WARNING (data saved anyway):'); [print(' -', w) for w in warnings]
+    open('warnings.txt', 'w').write('\n'.join(warnings) + '\n')
 lastwk = max([x[1] for x in g if x[6] is not None], default=0)
 pofinal = sum(1 for x in po if x[6] is not None)
 champ = ''

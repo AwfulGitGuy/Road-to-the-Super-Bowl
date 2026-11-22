@@ -14,7 +14,12 @@ if [ "${ALERT_AFTER:-1}" -gt 1 ] && [ "${TEST_ALERT:-false}" != "true" ]; then
   fi
 fi
 log="$(tail -n 40 run.log 2>/dev/null || echo 'No output was captured; see the full log.')"
-body="$(printf '**%s** failed on %s (UTC).\n\nFull log: %s\n\nLast lines of output:\n\n```\n%s\n```\n\nNothing was saved, so the page keeps showing the last good data. The next scheduled run will try again. If this keeps happening, paste this issue into a chat with Claude.' "$JOB" "$(date -u '+%Y-%m-%d %H:%M')" "$RUN_URL" "$log")"
+if [ -f run_warning.txt ]; then
+  saved='The new data **was saved**, but a check needs attention (see above). The site keeps updating; this issue stays open until the check passes.'
+else
+  saved='Nothing was saved, so the page keeps showing the last good data. The next scheduled run will try again.'
+fi
+body="$(printf '**%s** failed on %s (UTC).\n\nFull log: %s\n\nLast lines of output:\n\n```\n%s\n```\n\n%s If this keeps happening, paste this issue into a chat with Claude.' "$JOB" "$(date -u '+%Y-%m-%d %H:%M')" "$RUN_URL" "$log" "$saved")"
 gh label create data-job-failure --color B60205 --description "A scheduled data job failed" --force >/dev/null 2>&1 || true
 n="$(gh issue list --label data-job-failure --state open --search "\"$title\" in:title" --json number --jq '.[0].number' 2>/dev/null)"
 if [ -n "$n" ]; then

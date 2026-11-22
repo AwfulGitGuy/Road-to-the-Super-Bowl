@@ -1,4 +1,5 @@
 __pycache__/
+run_warning.txt
 *.pyc
 .DS_Store
 Thumbs.db

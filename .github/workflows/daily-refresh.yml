@@ -47,6 +47,8 @@ jobs:
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git add data
           if git diff --cached --quiet; then echo "No changes to save."; else git commit -m "Data refresh" && git pull --rebase -X theirs --quiet && git push; fi
+      - name: Check for warnings (data was saved; this only raises the alarm)
+        run: if [ -f run_warning.txt ]; then cat run_warning.txt | tee -a run.log; exit 1; fi
       - name: Report a problem
         if: failure()
         env:

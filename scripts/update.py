@@ -38,6 +38,11 @@ args = [year, 'games.csv', 'qb.csv', games] + ([prev] if os.path.exists(prev) el
 run('build_data.py', args, cwd=tmp, env=env)
 shutil.copy(os.path.join(tmp, 'season.json'), prev)
 print(f'Saved data/season-{year}.json')
+# A check that shouldn't hold back the save (e.g. a game with no score days later): the workflow saves the
+# data first, then fails the run on this file so the usual alarm still goes off.
+warn_file = os.path.join(os.path.dirname(DATA), 'run_warning.txt')
+if os.path.exists(os.path.join(tmp, 'warnings.txt')): shutil.copy(os.path.join(tmp, 'warnings.txt'), warn_file)
+elif os.path.exists(warn_file): os.remove(warn_file)
 
 # The "who to root for" file (data/rooting-YEAR.json). Optional: if this step fails, the data update above
 # still stands and the page simply hides that panel.

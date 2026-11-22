@@ -1,0 +1,4 @@
+{
+  "_note": "Games that nflverse still lists but the NFL cancelled (never to be played), e.g. 2022_17_BUF_CIN. Add the game id here; the refresh then leaves it out, and the expected game count drops by one.",
+  "games": []
+}
