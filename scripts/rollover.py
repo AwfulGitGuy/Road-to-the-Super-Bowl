@@ -2,7 +2,7 @@
 #   python3 rollover.py NEWYEAR games.csv stats_player_week_PREVYEAR.csv prev_priors.json prev_config.json [SB_HOSTS] [SB_VENUE]
 #   SB_HOSTS: comma-separated team codes whose home stadium hosts the Super Bowl, or "none".
 # Writes priors.json and config.json, prints ROLLOVER OK / ROLLOVER FAILED.
-import csv, json, os, sys, datetime
+import csv, json, math, os, sys, datetime
 Y = int(sys.argv[1]); P = Y - 1
 games_csv, stats_csv, prev_priors_path, prev_config_path = sys.argv[2:6]
 hosts = [] if len(sys.argv) < 7 or sys.argv[6].lower() in ('', 'none') else sys.argv[6].split(',')
@@ -16,7 +16,7 @@ TEAMS = sorted(DIVOF); TI = {t: i for i, t in enumerate(TEAMS)}; N = len(TEAMS)
 QB_K, QB_MU, QB_PLAYS, QB_C, QB_SIG = 200, -0.15, 35, 0.8, 0.3
 PERF = dict(k=0.08, c=0.7, hfa=2.6, cap=21)
 ORDER = {'REG': 0, 'WC': 1, 'DIV': 2, 'CON': 3, 'SB': 4}
-f = lambda x: None if x in ('', 'NA') else float(x)
+f = lambda x: None if x in ('', 'NA') or not math.isfinite(float(x)) else float(x)
 nz = lambda v: v if v not in ('', 'NA') else None
 prev = json.load(open(prev_priors_path)); prev = prev.get('data', prev)
 cfg = json.load(open(prev_config_path)); cfg = cfg.get('data', cfg)
@@ -116,8 +116,8 @@ seasons = sorted(set(cfg.get('seasons', [])) | {Y})
 config = {"current": Y, "seasons": seasons, "games": len(ng), "weeks": max(int(r['week']) for r in ng),
           "sb": {"number": n, "name": f"Super Bowl {roman(n)}", "venue": venue, "hosts": hosts},
           "endDate": end, "updatedAt": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%dT%H:%MZ')}
-json.dump({"season": Y, "qb": qb_prior, "perf": perf, "market": market, "sb": config["sb"], "games": config["games"], "weeks": config["weeks"]}, open('priors.json', 'w'), separators=(',', ':'))
-json.dump(config, open('config.json', 'w'), separators=(',', ':'))
+json.dump({"season": Y, "qb": qb_prior, "perf": perf, "market": market, "sb": config["sb"], "games": config["games"], "weeks": config["weeks"]}, open('priors.json', 'w'), separators=(',', ':'), allow_nan=False)
+json.dump(config, open('config.json', 'w'), separators=(',', ':'), allow_nan=False)
 top = sorted(market.items(), key=lambda kv: -kv[1])[:3]
 print(f'ROLLOVER OK: {Y} season, {len(ng)} games over {config["weeks"]} weeks, {config["sb"]["name"]} at {venue or "unknown venue"} '
       f'(host teams: {",".join(hosts) or "none"}), {len(qb_prior)} QBs carried over, top market ratings {top}, refresh ends {end}')

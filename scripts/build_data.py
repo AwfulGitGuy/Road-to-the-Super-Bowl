@@ -1,7 +1,7 @@
 # Daily build for the NFL simulator page. Usage:
 #   python3 build_data.py YEAR games.csv stats_player_week_YEAR.csv EXPECTED_GAMES [prev_season.json]
 # Writes season.json and prints CHECKS OK / CHECKS FAILED.
-import csv, json, sys, datetime, os
+import csv, json, sys, datetime, math, os
 year = sys.argv[1]; src = sys.argv[2]; qbsrc = sys.argv[3]; expected = int(sys.argv[4])
 prev_path = sys.argv[5] if len(sys.argv) > 5 else None
 import re
@@ -33,7 +33,13 @@ for r in rows: check_row(r)
 g = []; names = {}
 nz = lambda v: v if v not in ('', 'NA') else None
 for r in rows:
-    num = lambda k: (float(r[k]) if r[k] not in ('', 'NA') else None)
+    def num(k, lo=-100.0, hi=100.0):        # finite and in a sane range, or flagged (NaN/inf would break the page)
+        if r[k] in ('', 'NA'): return None
+        try: v = float(r[k])
+        except ValueError: v = math.nan
+        if not math.isfinite(v) or not lo <= v <= hi:
+            bad.append(f"{r['game_id']}: bad {k} {r[k][:12]!r}"); return None
+        return v
     hs, as_ = num('home_score'), num('away_score')
     aq, hq = nz(r['away_qb_id']), nz(r['home_qb_id'])
     aq = aq if aq and PLAYER_ID.match(aq) else None
@@ -51,6 +57,9 @@ for r in csv.DictReader(open(src)):
     if r['season'] != year or r['game_type'] not in ROUND: continue
     check_row(r)
     hs, as_ = r['home_score'], r['away_score']
+    for _v in (hs, as_):
+        if _v not in ('', 'NA') and not (_v.replace('.', '', 1).isdigit() and float(_v) <= 100): bad.append(f"{r['game_id']}: bad playoff score {_v[:12]!r}")
+    if any(v not in ('', 'NA') and not (v.replace('.', '', 1).isdigit() and float(v) <= 100) for v in (hs, as_)): continue
     paq, phq = nz(r.get('away_qb_id', '')), nz(r.get('home_qb_id', ''))
     paq = paq if paq and PLAYER_ID.match(paq) else None
     phq = phq if phq and PLAYER_ID.match(phq) else None
@@ -68,15 +77,19 @@ for r in csv.DictReader(open(src)):
         homes = sorted({x['home_team'] for x in csv.DictReader(open(src))
                         if x['season'] == year and x['game_type'] == 'REG' and x['location'] == 'Home' and x.get('stadium_id') == r['stadium_id'] and x['home_team'] in TEAMS})
         sb_site = {'stadium': clean_stadium(r.get('stadium')), 'hosts': homes}
-qb = []
+qb = []; skipped_qb = 0
 if os.path.exists(qbsrc) and os.path.getsize(qbsrc) > 1000:
     for r in csv.DictReader(open(qbsrc)):
         if r.get('position') != 'QB' or r.get('season_type') not in ('REG', 'POST') or r.get('season') != year: continue
+        try: vals = [float(r[k]) if r[k] not in ('', 'NA') else 0.0 for k in ('attempts', 'sacks_suffered', 'carries', 'passing_epa', 'rushing_epa')]
+        except ValueError: vals = [math.nan]
+        if not all(math.isfinite(v) and abs(v) <= 500 for v in vals): skipped_qb += 1; continue   # malformed stats row
         fl = lambda k: float(r[k]) if r[k] not in ('', 'NA') else 0.0
         plays = fl('attempts') + fl('sacks_suffered') + fl('carries')
         if plays <= 0 or not PLAYER_ID.match(r['player_id']) or not GAME_ID.match(r['game_id']): continue
         qb.append([r['game_id'], r['player_id'], int(plays), round(fl('passing_epa') + fl('rushing_epa'), 3)])
         names.setdefault(r['player_id'], clean_name(r['player_display_name']))
+if skipped_qb: print(f'NOTE: skipped {skipped_qb} malformed QB stats row(s).')
 # If the stats file couldn't be downloaded (update.py leaves it missing), keep the QB stats already saved
 # rather than holding back new scores; the next run that gets the file brings them up to date.
 if not os.path.exists(qbsrc) and prev_path and os.path.exists(prev_path):
@@ -232,7 +245,7 @@ if prev_path and os.path.exists(prev_path):
     old = json.load(open(prev_path)); old = old.get('data', old)
     if {k: v for k, v in old.items() if k != 'updatedAt'} == json.loads(json.dumps({k: v for k, v in out.items() if k != 'updatedAt'})):
         out['updatedAt'] = old.get('updatedAt', out['updatedAt']); print('No data changes since the last run.')
-json.dump(out, open('season.json', 'w'), separators=(',', ':'))
+json.dump(out, open('season.json', 'w'), separators=(',', ':'), allow_nan=False)
 if warnings:
     print('WARNING (data saved anyway):'); [print(' -', w) for w in warnings]
     open('warnings.txt', 'w').write('\n'.join(warnings) + '\n')

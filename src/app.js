@@ -769,9 +769,9 @@ function validSeason(d) {
     if (!d || !Array.isArray(d.games) || !Array.isArray(d.fields)) return false;
     const ix = Object.fromEntries(d.fields.map((k, i) => [k, i]));
     const okGame = (r, ixx) => RX.gid.test(r[ixx.id]) && M.TEAMS.includes(r[ixx.away]) && M.TEAMS.includes(r[ixx.home]) &&
-      RX.date.test(r[ixx.date]) && RX.time.test(r[ixx.time] || '') && okNum(r[ixx.awayScore]) && okNum(r[ixx.homeScore]);
+      RX.date.test(r[ixx.date]) && RX.time.test(r[ixx.time] || '') && okNum(r[ixx.awayScore]) && okNum(r[ixx.homeScore]) && !(r[ixx.awayScore] > 150 || r[ixx.homeScore] > 150);
     for (const r of d.games) {
-      if (!okGame(r, ix) || !okNum(r[ix.spread])) return false;
+      if (!okGame(r, ix) || !okNum(r[ix.spread]) || Math.abs(r[ix.spread] || 0) > 60) return false;
       if (ix.stadium !== undefined && !(typeof r[ix.stadium] === 'string' && /^[A-Za-z0-9 &'.-]{0,60}$/.test(r[ix.stadium]))) return false;
       if (ix.awayQB !== undefined && ((r[ix.awayQB] && !RX.pid.test(r[ix.awayQB])) || (r[ix.homeQB] && !RX.pid.test(r[ix.homeQB])))) return false;
     }
