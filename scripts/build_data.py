@@ -126,6 +126,8 @@ if prev_path and os.path.exists(prev_path):
     if final < len(pf): problems.append(f'final games dropped from {len(pf)} to {final}')
     changed = [k for k in pf if k in cur and cur[k][0] is not None and cur[k] != pf[k]]
     if changed: print(f'NOTE: {len(changed)} final score(s) were corrected upstream, e.g. {changed[0]} {pf[changed[0]]} -> {cur[changed[0]]}')
+    # Real corrections are rare and come one or two at a time; many at once means bad data upstream.
+    if len(changed) > 3 and os.environ.get('ACCEPT_SCORE_CHANGES') != 'true': problems.append(f'{len(changed)} final scores changed at once (e.g. {changed[0]} {pf[changed[0]]} -> {cur[changed[0]]}); not saving until that is checked')
 if problems:
     print('CHECKS FAILED — do not save:'); [print(' -', p) for p in problems[:10]]; sys.exit(1)
 out = {"season": int(year), "updatedAt": datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%dT%H:%MZ'),

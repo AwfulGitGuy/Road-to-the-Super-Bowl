@@ -10,6 +10,10 @@ on:
         description: 'Test the alarm: make this run fail on purpose'
         type: boolean
         default: false
+      accept_score_changes:
+        description: 'Accept many changed final scores at once (only after checking they are real)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write            # lets the workflow save the updated data files
@@ -35,6 +39,7 @@ jobs:
         shell: bash
         env:
           TEST_ALERT: ${{ inputs.test_alert }}   # passed as a variable, never pasted into the script
+          ACCEPT_SCORE_CHANGES: ${{ inputs.accept_score_changes }}
         run: |
           if [ "$TEST_ALERT" = "true" ]; then echo "Test of the failure alarm (nothing is wrong)." | tee run.log; exit 1; fi
           python scripts/update.py 2>&1 | tee run.log; exit ${PIPESTATUS[0]}

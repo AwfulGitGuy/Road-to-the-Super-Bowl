@@ -38,6 +38,8 @@ A run also counts as failed if a game that kicked off two or more days ago still
 
 Nothing bad is ever saved: a failed run leaves the last good data in place.
 
+If more than three final scores change in one run, it stops and alerts instead of saving, since real corrections come one or two at a time. If you've checked the changes are real (for example on nfl.com), go to Actions → **Data refresh** → **Run workflow**, tick **Accept score changes**, and run it once.
+
 If an issue stays open for more than a day or so, copy its text into a chat with Claude (or anyone who knows Python) to get it fixed.
 
 **To test the alarm:** Actions tab → **Data refresh** → **Run workflow**, tick **Test the alarm**, and run it. An issue should open within a few minutes (the test skips the four-in-a-row rule). Run it again unticked and the issue closes itself.
