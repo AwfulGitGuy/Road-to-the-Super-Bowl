@@ -775,7 +775,11 @@ function validSeason(d) {
       if (ix.stadium !== undefined && !(typeof r[ix.stadium] === 'string' && /^[A-Za-z0-9 &'.-]{0,60}$/.test(r[ix.stadium]))) return false;
       if (ix.awayQB !== undefined && ((r[ix.awayQB] && !RX.pid.test(r[ix.awayQB])) || (r[ix.homeQB] && !RX.pid.test(r[ix.homeQB])))) return false;
     }
-    if (d.playoffs) { const px = Object.fromEntries(d.playoffFields.map((k, i) => [k, i])); for (const r of d.playoffs) if (!okGame(r, px)) return false; }
+    if (d.playoffs) {
+      const px = Object.fromEntries(d.playoffFields.map((k, i) => [k, i]));
+      for (const r of d.playoffs) if (!okGame(r, px) || (px.awayQB !== undefined && ((r[px.awayQB] && !RX.pid.test(r[px.awayQB])) || (r[px.homeQB] && !RX.pid.test(r[px.homeQB]))))) return false;
+    }
+    if (d.qbPO !== undefined && !(d.qbPO && typeof d.qbPO === 'object' && !Array.isArray(d.qbPO) && Object.entries(d.qbPO).every(([t, q]) => M.TEAMS.includes(t) && RX.pid.test(q)))) return false;
     for (const r of d.qbGames || []) if (!RX.gid.test(r[0]) || !RX.pid.test(r[1]) || !okNum(r[2]) || !okNum(r[3])) return false;
     for (const [k, v] of Object.entries(d.qbNames || {})) if (!RX.pid.test(k) || typeof v !== 'string' || v.length > 60) return false;
     if (d.sbSite !== undefined && !(d.sbSite && Array.isArray(d.sbSite.hosts) && d.sbSite.hosts.every(t => M.TEAMS.includes(t)) && /^[A-Za-z0-9 &'.-]{0,60}$/.test(d.sbSite.stadium || ''))) return false;

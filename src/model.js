@@ -87,8 +87,22 @@ const NFLModel = (() => {
         if (g.final) for (const r of (byGame[g.id] || [])) { const s = S[r[1]] = S[r[1]] || [0, 0]; s[0] += r[3]; s[1] += r[2]; }
       }
     }
+    // Playoffs: the latest QB listed for each team's playoff games, and playoff stats once those games are final.
+    const poRecent = new Array(N).fill(null);
+    if (Array.isArray(season.playoffs) && season.playoffFields) {
+      const px = Object.fromEntries(season.playoffFields.map((k, i) => [k, i]));
+      const rows = season.playoffs.slice().sort((a, b) => a[px.round] - b[px.round]);
+      for (const r of rows) {
+        const a = IDX[r[px.away]], h = IDX[r[px.home]];
+        if (a === undefined || h === undefined) continue;
+        const aq = px.awayQB !== undefined ? r[px.awayQB] : null, hq = px.homeQB !== undefined ? r[px.homeQB] : null;
+        if (aq) poRecent[a] = aq; if (hq) poRecent[h] = hq;
+        if (r[px.homeScore] !== null && r[px.homeScore] !== undefined)
+          for (const x of (byGame[r[px.id]] || [])) { const s = S[x[1]] = S[x[1]] || [0, 0]; s[0] += x[3]; s[1] += x[2]; }
+      }
+    }
     const now = q => pts(val(q));
-    return { recent, now, names: season.qbNames || {} };
+    return { recent, poRecent, now, names: season.qbNames || {} };
   }
 
   // Weighted ridge least squares: spread = r_home - r_away + hfa*(!neutral)
@@ -323,7 +337,11 @@ const NFLModel = (() => {
         poWin.set(Math.min(a, h) * 64 + Math.max(a, h), IDX[pick]);
       }
     }
-    const qbvPO = t => (useQB && !qbPicks[TEAMS[t]] ? val(t, starter(t), lastWeek + 2) : qbv(t));   // playoffs: end-of-season value
+    // Playoff starter: the viewer's pick, else the QB listed for the team's latest playoff game, else a starter
+    // who was rested in the last regular-season game (season.qbPO), else the latest starter.
+    const qbPO = season.qbPO && typeof season.qbPO === 'object' ? season.qbPO : {};
+    const poStarter = t => (qbPicks[TEAMS[t]] || qs.poRecent[t] || qbPO[TEAMS[t]] || qs.recent[t]);
+    const qbvPO = t => (!useQB ? 0 : qbPicks[TEAMS[t]] ? qbv(t) : val(t, poStarter(t), lastWeek + 2));   // playoffs: end-of-season value
     const L = fit.latest;                 // latest week with posted lines
     const walkWeeks = Math.max(1, lastWeek + 1 - L);
     const walk = Array.from({ length: N }, () => new Float64Array(walkWeeks + 1));
@@ -396,10 +414,11 @@ const NFLModel = (() => {
     }
 
     const st = makeStandings(fixed);
+    const shownQB = i => (!useQB ? null : left.length ? starter(i) : poStarter(i));
     const teams = TEAMS.map((t, i) => ({
       abbr: t, name: NAMES[t], city: CITY[t], div: divOf[i], conf: confOf[i],
       w: st.W[i], l: st.L[i], t: st.T[i], rating: fit.r[i] + qbv(i), baseRating: fit.r[i],
-      qbName: useQB && starter(i) ? (qs.names[starter(i)] || null) : null, qbPts: useQB && starter(i) ? qbv(i) : null, qbId: useQB ? starter(i) : null,
+      qbName: shownQB(i) ? (qs.names[shownQB(i)] || null) : null, qbPts: shownQB(i) ? qs.now(shownQB(i)) : null, qbId: shownQB(i),
       qbOptions: useQB ? qbOptions(i) : [],
       qbOut: out[i] ? { id: out[i].qb, name: qs.names[out[i].qb] || null, cls: out[i].cls, listed: out[i].listed, pNext: retP(out[i].cls, 1), pEnd: retP(out[i].cls, lastWeek + 2 - out[i].listed) } : null,
       projW: acc.wins[i] / sims, playoff: acc.playoff[i] / sims, divWin: acc.div[i] / sims,

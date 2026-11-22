@@ -41,9 +41,14 @@ for r in csv.DictReader(open(src)):
     if r['season'] != year or r['game_type'] not in ROUND: continue
     check_row(r)
     hs, as_ = r['home_score'], r['away_score']
+    paq, phq = nz(r.get('away_qb_id', '')), nz(r.get('home_qb_id', ''))
+    paq = paq if paq and PLAYER_ID.match(paq) else None
+    phq = phq if phq and PLAYER_ID.match(phq) else None
+    if paq: names[paq] = clean_name(r['away_qb_name'])
+    if phq: names[phq] = clean_name(r['home_qb_name'])
     po.append([r['game_id'], ROUND[r['game_type']], r['gameday'], r['gametime'], r['away_team'], r['home_team'],
                int(float(as_)) if as_ not in ('', 'NA') else None, int(float(hs)) if hs not in ('', 'NA') else None,
-               1 if r['location'] == 'Neutral' else 0])
+               1 if r['location'] == 'Neutral' else 0, paq, phq])
 po.sort(key=lambda x: (x[1], x[2], x[3] or '', x[0]))
 # Super Bowl site, read from the data once nflverse lists the game (about two weeks before it's played):
 # the host team(s) are whoever played regular-season home games at that stadium this season.
@@ -56,7 +61,7 @@ for r in csv.DictReader(open(src)):
 qb = []
 if os.path.exists(qbsrc) and os.path.getsize(qbsrc) > 1000:
     for r in csv.DictReader(open(qbsrc)):
-        if r.get('position') != 'QB' or r.get('season_type') != 'REG' or r.get('season') != year: continue
+        if r.get('position') != 'QB' or r.get('season_type') not in ('REG', 'POST') or r.get('season') != year: continue
         fl = lambda k: float(r[k]) if r[k] not in ('', 'NA') else 0.0
         plays = fl('attempts') + fl('sacks_suffered') + fl('carries')
         if plays <= 0 or not PLAYER_ID.match(r['player_id']) or not GAME_ID.match(r['game_id']): continue
@@ -102,7 +107,7 @@ out = {"season": int(year), "updatedAt": datetime.datetime.now(datetime.timezone
        "source": f"nflverse/nfldata games.csv + nflverse stats_player_week_{year}.csv",
        "fields": ["id", "week", "date", "time", "away", "home", "awayScore", "homeScore", "spread", "neutral", "awayQB", "homeQB", "stadium"],
        "games": g, "qbFields": ["id", "player", "plays", "epa"], "qbGames": qb, "qbNames": names,
-       "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral"], "playoffs": po}
+       "playoffFields": ["id", "round", "date", "time", "away", "home", "awayScore", "homeScore", "neutral", "awayQB", "homeQB"], "playoffs": po}
 if sb_site: out['sbSite'] = sb_site
 # Injured starters. For each team, the QB with the most starts in its last 8 games (counting back into last
 # season early on; ties go to more starts this season, then the more recent starter) is listed when someone else
@@ -117,11 +122,15 @@ INJ_OK = re.compile(r'^[A-Za-z /,.()-]{0,40}$')
 def qb_out():
     inj_path, ros_path, prev_season = os.environ.get('QB_INJURIES'), os.environ.get('QB_ROSTERS'), os.environ.get('PREV_SEASON')
     if not inj_path or not os.path.exists(inj_path): return {}
+    # Listed starters by (team, week), regular season and playoffs (playoff weeks are 19-22, from the game id).
+    games_all = [(x[1], x[4], x[5], x[6], x[10], x[11]) for x in g] + [(int(x[0][5:7]), x[4], x[5], x[6], x[9], x[10]) for x in po]
     start = {}
-    for x in g:
-        if x[10]: start[(x[4], x[1])] = x[10]
-        if x[11]: start[(x[5], x[1])] = x[11]
-    final_weeks = {(x[4], x[1]) for x in g if x[6] is not None} | {(x[5], x[1]) for x in g if x[6] is not None}
+    for wk_, a_, h_, sc_, aq_, hq_ in games_all:
+        if aq_: start[(a_, wk_)] = aq_
+        if hq_: start[(h_, wk_)] = hq_
+    final_weeks = {(a_, wk_) for wk_, a_, h_, sc_, _, _ in games_all if sc_ is not None} | {(h_, wk_) for wk_, a_, h_, sc_, _, _ in games_all if sc_ is not None}
+    lost_po = {x[4] if x[7] > x[6] else x[5] for x in po if x[6] is not None and x[6] != x[7]}
+    in_po = {t_ for x in po for t_ in (x[4], x[5])}
     prev_starts = {}
     if prev_season and os.path.exists(prev_season):
         ps = json.load(open(prev_season)); ps = ps.get('data', ps)
@@ -130,7 +139,7 @@ def qb_out():
                 if q: prev_starts.setdefault(t, []).append(q)
     inj = {}
     for r in csv.DictReader(open(inj_path)):
-        if r.get('position') == 'QB' and r.get('season') == year and str(r.get('week', '')).isdigit() and r.get('season_type', 'REG') == 'REG':
+        if r.get('position') == 'QB' and r.get('season') == year and str(r.get('week', '')).isdigit() and r.get('season_type', 'REG') in ('REG', 'POST'):
             inj[(int(r['week']), r['gsis_id'])] = (r.get('report_status') or '', r.get('report_primary_injury') or '')
     ros = {}
     if ros_path and os.path.exists(ros_path):
@@ -154,8 +163,11 @@ def qb_out():
         # Injury status is read for the team's next unplayed game (that week's report, or last week's if it isn't out
         # yet), not for the furthest week with a projected starter, which can be two weeks ahead.
         open_weeks = sorted({x[1] for x in g if t in (x[4], x[5]) and x[6] is None})
-        if not open_weeks: continue
-        wk = open_weeks[0]
+        if open_weeks: wk = open_weeks[0]
+        else:                                # regular season over: only teams still alive in the playoffs
+            if t in lost_po or (po and t not in in_po): continue
+            pend = sorted(int(x[0][5:7]) for x in po if t in (x[4], x[5]) and x[6] is None)
+            wk = pend[0] if pend else max(w for (tt, w) in final_weeks if tt == t) + 1
         rs = ros.get((wk, reg)) or ros.get((wk - 1, reg)) or ''
         rep = inj.get((wk, reg)) or inj.get((wk - 1, reg)) or ('', '')
         if rs == 'RES': cls, status = 'ir', 'Injured reserve'
@@ -165,11 +177,44 @@ def qb_out():
         injury = rep[1] if INJ_OK.match(rep[1] or '') else ''
         out[t] = {'qb': reg, 'cls': cls, 'status': status, 'injury': injury}
     return out
+# Rested starters: a team that rests its starter in its last regular-season game (common in Week 18 once seeding
+# is settled) is listed with the backup, but the starter plays in the playoffs. If the last game's listed starter
+# differs from the previous game's and the previous starter isn't Out, Doubtful or on injured reserve, the
+# playoffs use the previous starter (qbPO). A QB listed for a playoff game always takes precedence on the page.
+def qb_po():
+    inj_path, ros_path = os.environ.get('QB_INJURIES'), os.environ.get('QB_ROSTERS')
+    hurt = set()
+    if inj_path and os.path.exists(inj_path):
+        for r in csv.DictReader(open(inj_path)):
+            if r.get('position') == 'QB' and r.get('season') == year and r.get('report_status') in ('Out', 'Doubtful') and str(r.get('week', '')).isdigit():
+                hurt.add((int(r['week']), r['gsis_id']))
+    if ros_path and os.path.exists(ros_path):
+        for r in csv.DictReader(open(ros_path)):
+            if r.get('position') == 'QB' and r.get('season') == year and r.get('status') == 'RES' and str(r.get('week', '')).isdigit():
+                hurt.add((int(r['week']), r['gsis_id']))
+    res = {}
+    in_po = {t_ for x in po for t_ in (x[4], x[5])}
+    for t in sorted(TEAMS):
+        if in_po and t not in in_po: continue      # once the playoff field is listed, only playoff teams matter
+        weeks = sorted(x[1] for x in g if t in (x[4], x[5]))
+        if len(weeks) < 2: continue
+        q = {x[1]: (x[10] if x[4] == t else x[11]) for x in g if t in (x[4], x[5])}
+        last, prevw = weeks[-1], weeks[-2]
+        a, b = q.get(last), q.get(prevw)
+        if not a or not b or a == b or not PLAYER_ID.match(b): continue
+        if (last, b) in hurt or (prevw, b) in hurt: continue
+        res[t] = b
+    return res
 try:
     out['qbOut'] = qb_out()
     if out['qbOut']: print('Injured recent starters:', ', '.join(f"{t} {names.get(o['qb']) or o['qb']} ({o['status']}{', ' + o['injury'] if o['injury'] else ''})" for t, o in out['qbOut'].items()))
 except Exception as e:
     out['qbOut'] = {}; print(f'NOTE: skipped the injured-starter check ({e}).')
+try:
+    out['qbPO'] = qb_po()
+    if out['qbPO']: print('Rested starters (used for the playoffs):', ', '.join(f"{t} {names.get(q_) or q_}" for t, q_ in out['qbPO'].items()))
+except Exception as e:
+    out['qbPO'] = {}; print(f'NOTE: skipped the rested-starter check ({e}).')
 # Keep the previous "updated" time when nothing else changed, so an unchanged run saves nothing.
 if prev_path and os.path.exists(prev_path):
     old = json.load(open(prev_path)); old = old.get('data', old)
