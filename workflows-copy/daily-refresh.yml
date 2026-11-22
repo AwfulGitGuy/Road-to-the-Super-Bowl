@@ -32,8 +32,10 @@ jobs:
           python-version: '3.x'      # the newest Python 3 available; the scripts use only Python's built-in tools
       - name: Download results and rebuild this season's data
         shell: bash
+        env:
+          TEST_ALERT: ${{ inputs.test_alert }}   # passed as a variable, never pasted into the script
         run: |
-          if [ "${{ inputs.test_alert }}" = "true" ]; then echo "Test of the failure alarm (nothing is wrong)." | tee run.log; exit 1; fi
+          if [ "$TEST_ALERT" = "true" ]; then echo "Test of the failure alarm (nothing is wrong)." | tee run.log; exit 1; fi
           python scripts/update.py 2>&1 | tee run.log; exit ${PIPESTATUS[0]}
       - name: Save the new data
         run: |
