@@ -5,7 +5,7 @@ Exits with an error (so GitHub Actions marks the run failed and emails you) if a
 download fails or the safety checks don't pass. Nothing is saved in that case.
 """
 import datetime, os, shutil
-from common import DATA, GAMES_URL, latest_games_url, INJURIES_URL, ROSTERS_URL, STATS_URL, download, load, run, try_download, workdir
+from common import DATA, GAMES_URL, latest_games_url, INJURIES_URL, ROSTERS_URL, STATS_URL, download, load, run, workdir
 
 cfg = load('config.json')
 year, games = cfg['current'], cfg['games']
@@ -25,12 +25,12 @@ download(latest_games_url(), os.path.join(tmp, 'games.csv'))
 # QB stats come from a different GitHub server than the scores and change only overnight, so a failed
 # download here doesn't stop the run: build_data.py keeps the stats already saved (November 2026: this file's
 # server timed out for 2+ hours and held back every update).
-try_download(STATS_URL.format(year=year), os.path.join(tmp, 'qb.csv'))
+download(STATS_URL.format(year=year), os.path.join(tmp, 'qb.csv'), required=False)
 # Injury reports and roster status, used to spot an injured regular starter. Optional: without them
 # the model simply assumes the latest starter keeps playing.
 env = {}
-if try_download(INJURIES_URL.format(year=year), os.path.join(tmp, 'injuries.csv')): env['QB_INJURIES'] = 'injuries.csv'
-if try_download(ROSTERS_URL.format(year=year), os.path.join(tmp, 'rosters.csv')): env['QB_ROSTERS'] = 'rosters.csv'
+if download(INJURIES_URL.format(year=year), os.path.join(tmp, 'injuries.csv'), required=False): env['QB_INJURIES'] = 'injuries.csv'
+if download(ROSTERS_URL.format(year=year), os.path.join(tmp, 'rosters.csv'), required=False): env['QB_ROSTERS'] = 'rosters.csv'
 last = os.path.join(DATA, f'season-{year - 1}.json')
 if os.path.exists(last): env['PREV_SEASON'] = last
 prev = os.path.join(DATA, f'season-{year}.json')

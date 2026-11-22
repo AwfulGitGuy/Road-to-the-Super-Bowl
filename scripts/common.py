@@ -39,33 +39,24 @@ def _fetch(url, dest):
 
 
 def download(url, dest, required=True, tries=3):
-    """Download url to dest. Returns True on success. A 404 on an optional file writes an empty file."""
-    for attempt in range(tries):
+    """Download url to dest, retrying network hiccups. Returns True on success.
+    required=True: stop the run (exit 1) if it can't be downloaded.
+    required=False: an optional file; on any problem, leave no file, print a note and return False."""
+    err = None
+    for attempt in range(tries if required else 2):
         try:
             _fetch(url, dest)
             return True
         except urllib.error.HTTPError as e:
-            if e.code == 404 and not required:
-                open(dest, 'w').close()
-                return False
             err = e
-        except Exception as e:  # network hiccup: retry
+            if e.code == 404 and not required: break       # not published (yet); no point retrying
+        except Exception as e:                            # network hiccup or deadline: retry
             err = e
         time.sleep(5 * (attempt + 1))
-    print(f'Download failed: {url} ({err})')
-    sys.exit(1)
-
-
-def try_download(url, dest):
-    """Download an optional extra file. Never stops the run: returns False (and leaves no file) on any problem."""
-    for attempt in range(2):
-        try:
-            _fetch(url, dest)
-            return True
-        except Exception as e:
-            err = e
-            time.sleep(5)
     if os.path.exists(dest): os.remove(dest)
+    if required:
+        print(f'Download failed: {url} ({err})')
+        sys.exit(1)
     print(f'NOTE: could not download {url} ({err}); continuing without it.')
     return False
 
