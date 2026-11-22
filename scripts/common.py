@@ -24,12 +24,25 @@ INJURIES_URL = 'https://github.com/nflverse/nflverse-data/releases/download/inju
 ROSTERS_URL = 'https://github.com/nflverse/nflverse-data/releases/download/weekly_rosters/roster_weekly_{year}.csv'
 
 
+DEADLINE = 180   # seconds allowed for one whole file; a server that trickles data counts as a failed try
+
+
+def _fetch(url, dest):
+    """Download url to dest within DEADLINE seconds overall (the socket timeout alone only limits each read)."""
+    t0 = time.monotonic()
+    with urllib.request.urlopen(url, timeout=60) as r, open(dest, 'wb') as f:
+        while True:
+            chunk = r.read(1 << 16)
+            if not chunk: return
+            f.write(chunk)
+            if time.monotonic() - t0 > DEADLINE: raise TimeoutError(f'download took longer than {DEADLINE}s')
+
+
 def download(url, dest, required=True, tries=3):
     """Download url to dest. Returns True on success. A 404 on an optional file writes an empty file."""
     for attempt in range(tries):
         try:
-            with urllib.request.urlopen(url, timeout=120) as r, open(dest, 'wb') as f:
-                shutil.copyfileobj(r, f)
+            _fetch(url, dest)
             return True
         except urllib.error.HTTPError as e:
             if e.code == 404 and not required:
@@ -47,8 +60,7 @@ def try_download(url, dest):
     """Download an optional extra file. Never stops the run: returns False (and leaves no file) on any problem."""
     for attempt in range(2):
         try:
-            with urllib.request.urlopen(url, timeout=120) as r, open(dest, 'wb') as f:
-                shutil.copyfileobj(r, f)
+            _fetch(url, dest)
             return True
         except Exception as e:
             err = e

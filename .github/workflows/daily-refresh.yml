@@ -27,6 +27,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 20      # backstop; the main step below has its own, shorter limit
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0, pinned to an exact commit
         with:
@@ -37,6 +38,7 @@ jobs:
           python-version: '3.x'      # the newest Python 3 available; the scripts use only Python's built-in tools
       - name: Download results and rebuild this season's data
         shell: bash
+        timeout-minutes: 10    # a hung download fails this step, so the alarm below still runs
         env:
           TEST_ALERT: ${{ inputs.test_alert }}   # passed as a variable, never pasted into the script
           ACCEPT_SCORE_CHANGES: ${{ inputs.accept_score_changes }}
