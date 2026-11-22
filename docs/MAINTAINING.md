@@ -20,7 +20,7 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | `scripts/rooting.js` | Builds the "who to root for" file by playing the same 10,000 seasons twice for each game (once with each result). Runs with Node, which GitHub's machines already have; if it fails, the refresh carries on and the page hides that panel. |
 | `scripts/build_page.py` | Assembles `index.html` from `src/`. |
 | `scripts/report_failure.sh`, `scripts/report_success.sh` | Open and close the "job failed" issue. |
-| `.github/workflows/` | The two schedules GitHub runs. Copies are in `workflows-copy/` in case a computer hides the `.github` folder. |
+| `.github/workflows/` | The two jobs (data refresh and new-season setup), started by the cron-job.org timer or by hand from the Actions tab. On a computer that hides folders starting with a dot, the files are easiest to view on GitHub. |
 
 ## What happens on its own
 
