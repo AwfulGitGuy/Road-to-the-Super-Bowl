@@ -19,6 +19,7 @@ permissions:
   contents: write            # lets the workflow save the updated data files
   issues: write              # lets it open an issue when something goes wrong
   actions: read              # lets the alarm check whether the previous run also failed
+  pages: write               # lets it ask GitHub to rebuild the site if a deploy failed
 
 concurrency:
   group: data-updates
@@ -54,6 +55,10 @@ jobs:
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git add data
           if git diff --cached --quiet; then echo "No changes to save."; else git commit -m "Data refresh" && git pull --rebase -X theirs --quiet && git push; fi
+      - name: Check the site deploy and the workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/health_check.sh
       - name: Check for warnings (data was saved; this only raises the alarm)
         run: if [ -f run_warning.txt ]; then cat run_warning.txt | tee -a run.log; exit 1; fi
       - name: Report a problem
@@ -73,3 +78,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           JOB: Data refresh
         run: bash scripts/report_success.sh
+      - name: Check in with the outside monitor (if one is set up)
+        if: success()
+        env:
+          HC_URL: ${{ secrets.HEALTHCHECK_URL }}   # a ping address from healthchecks.io; see docs/MAINTAINING.md
+        run: |
+          if [ -n "$HC_URL" ]; then curl -fsS -m 10 --retry 3 "$HC_URL" >/dev/null && echo "Checked in." || echo "NOTE: check-in failed."; else echo "No outside monitor set up."; fi
