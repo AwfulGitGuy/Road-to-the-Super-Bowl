@@ -56,6 +56,12 @@ header .meta{color:var(--ink-2);font-size:14px;display:flex;flex-wrap:wrap;gap:8
 .updline .status:not(:empty)::before{content:" · "}
 .secnav{position:sticky;top:0;z-index:20;background:var(--bg);display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-block:-16px -8px;padding:6px 0;border-bottom:1px solid var(--line);box-shadow:0 0 0 100vmax var(--bg);clip-path:inset(0 -100vmax)}
 .secnav::-webkit-scrollbar{display:none}
+/* When the menu is wider than the screen (phones), fade out the edge that has more buttons past it. The fade is
+   painted in the page color (not a transparency mask), so content scrolling under the sticky menu never shows. */
+.secnav::before,.secnav::after{content:"";position:sticky;flex:none;width:44px;z-index:1;pointer-events:none;opacity:0;transition:opacity .15s}
+.secnav::before{left:0;margin-right:-44px;background:linear-gradient(to left,transparent,var(--bg) 80%)}
+.secnav::after{right:0;margin-left:-44px;background:linear-gradient(to right,transparent,var(--bg) 80%)}
+.secnav.more-l::before,.secnav.more-r::after{opacity:1}
 .secnav button{flex:none;background:none;border:0;border-radius:4px;padding:6px 10px;font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:14px;color:var(--ink-2)}
 .secnav button:hover{color:var(--ink);background:var(--surface-2)}
 .secnav button[aria-current="true"]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--gold);border-radius:4px 4px 0 0}
@@ -2250,7 +2256,7 @@ const navBtns = () => [...NAV.querySelectorAll('[data-jump]')];
 function updateNav() {
   navBtns().forEach(b => { const el = document.getElementById(b.dataset.jump); b.hidden = !el || el.hidden; });
   $('#nav-team').textContent = focus ? M.NAMES[focus] : 'Your team';
-  markNav();
+  markNav(); navFade();
 }
 let navCur = null;
 function markNav() {
@@ -2261,6 +2267,13 @@ function markNav() {
   navBtns().forEach(b => b.setAttribute('aria-current', String(b === on)));
   if (on && (on.offsetLeft < NAV.scrollLeft || on.offsetLeft + on.offsetWidth > NAV.scrollLeft + NAV.clientWidth)) NAV.scrollLeft = on.offsetLeft - 8;
 }
+function navFade() {
+  const max = NAV.scrollWidth - NAV.clientWidth;
+  NAV.classList.toggle('more-l', max > 2 && NAV.scrollLeft > 2);
+  NAV.classList.toggle('more-r', max > 2 && NAV.scrollLeft < max - 2);
+}
+NAV.addEventListener('scroll', navFade, { passive: true });
+window.addEventListener('resize', navFade);
 let navTick = false;
 window.addEventListener('scroll', () => { if (navTick) return; navTick = true; requestAnimationFrame(() => { navTick = false; markNav(); }); }, { passive: true });
 NAV.addEventListener('click', e => {

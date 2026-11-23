@@ -785,7 +785,7 @@ const navBtns = () => [...NAV.querySelectorAll('[data-jump]')];
 function updateNav() {
   navBtns().forEach(b => { const el = document.getElementById(b.dataset.jump); b.hidden = !el || el.hidden; });
   $('#nav-team').textContent = focus ? M.NAMES[focus] : 'Your team';
-  markNav();
+  markNav(); navFade();
 }
 let navCur = null;
 function markNav() {
@@ -796,6 +796,13 @@ function markNav() {
   navBtns().forEach(b => b.setAttribute('aria-current', String(b === on)));
   if (on && (on.offsetLeft < NAV.scrollLeft || on.offsetLeft + on.offsetWidth > NAV.scrollLeft + NAV.clientWidth)) NAV.scrollLeft = on.offsetLeft - 8;
 }
+function navFade() {
+  const max = NAV.scrollWidth - NAV.clientWidth;
+  NAV.classList.toggle('more-l', max > 2 && NAV.scrollLeft > 2);
+  NAV.classList.toggle('more-r', max > 2 && NAV.scrollLeft < max - 2);
+}
+NAV.addEventListener('scroll', navFade, { passive: true });
+window.addEventListener('resize', navFade);
 let navTick = false;
 window.addEventListener('scroll', () => { if (navTick) return; navTick = true; requestAnimationFrame(() => { navTick = false; markNav(); }); }, { passive: true });
 NAV.addEventListener('click', e => {
