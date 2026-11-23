@@ -1,9 +1,10 @@
 """Assemble index.html from the source files in src/ and the data in data/.
 
-Run from anywhere:  python scripts/build_page.py
+Run from anywhere:  python scripts/build_page.py           (writes index.html)
+                    python scripts/build_page.py OUT.html  (writes elsewhere, e.g. for the build check)
 The page embeds a snapshot of the current season (used only if the data files can't be read).
 """
-import json, os
+import json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC, DATA = os.path.join(ROOT, 'src'), os.path.join(ROOT, 'data')
 read = lambda *p: open(os.path.join(*p), encoding='utf-8').read()
@@ -50,5 +51,5 @@ html = (base + head + "\n</head>\n<body>\n" + body
         + '<script type="text/plain" id="model-src">' + model + '</script>\n<script>' + model + '</script>\n'
         + '<script>const SNAPSHOT=' + season + ';\nconst DEFAULT_PRIORS=' + pri + ';\nconst DEFAULT_CONFIG=' + cfg + ';</script>\n'
         + '<script>' + perf + '\nconst PERF_CONST=' + pc + ';</script>\n<script>' + app + '</script>\n</body>\n</html>\n')
-open(os.path.join(ROOT, 'index.html'), 'w', encoding='utf-8').write(html)
+open(sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'index.html'), 'w', encoding='utf-8').write(html)
 print('Built index.html', len(html), 'bytes')
