@@ -5,7 +5,7 @@ Exits with an error (so GitHub Actions marks the run failed and emails you) if a
 download fails or the safety checks don't pass. Nothing is saved in that case.
 """
 import datetime, os, shutil
-from common import DATA, GAMES_URL, latest_games_url, INJURIES_URL, ROSTERS_URL, STATS_URL, download, load, run, workdir
+from common import DATA, latest_games_url, INJURIES_URL, ROSTERS_URL, STATS_URL, download, load, run, workdir
 
 cfg = load('config.json')
 year, games = cfg['current'], cfg['games']

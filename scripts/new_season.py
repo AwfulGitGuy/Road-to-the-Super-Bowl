@@ -7,7 +7,7 @@ Run from anywhere:  python scripts/new_season.py
   (team list, games per team, divisions) so the page can be updated first.
 """
 import csv, json, os, shutil
-from common import DATA, GAMES_URL, latest_games_url, STATS_URL, download, load, run, workdir
+from common import DATA, latest_games_url, STATS_URL, download, load, run, workdir
 
 # First, extend the Super Bowl site list from Wikipedia (adds newly awarded sites; never overwrites). Optional.
 try:

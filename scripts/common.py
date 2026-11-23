@@ -1,5 +1,5 @@
 """Shared helpers for update.py and new_season.py."""
-import json, os, shutil, subprocess, sys, tempfile, time, urllib.error, urllib.request
+import json, os, subprocess, sys, tempfile, time, urllib.error, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'data')

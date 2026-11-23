@@ -8,7 +8,7 @@ long; the job runs every Monday in August and September). What it checked is rec
 and a change waiting for its second check under "_pending". Any problem (no network, page missing,
 unexpected page layout) just means nothing changes.
 """
-import datetime, json, os, re, sys, urllib.parse, urllib.request
+import datetime, json, os, re, urllib.parse, urllib.request
 DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 AHEAD = 6            # look this many seasons ahead
 CONFIRM_DAYS = 7     # a changed site must still be on Wikipedia this many days later
