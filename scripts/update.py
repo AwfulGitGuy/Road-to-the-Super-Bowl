@@ -39,10 +39,11 @@ warn_file = os.path.join(os.path.dirname(DATA), 'run_warning.txt')
 if os.path.exists(os.path.join(tmp, 'warnings.txt')): shutil.copy(os.path.join(tmp, 'warnings.txt'), warn_file)
 elif os.path.exists(warn_file): os.remove(warn_file)
 
-# The "who to root for" file (data/rooting-YEAR.json). Optional: if this step fails, the data update above
-# still stands and the page simply hides that panel.
+# The "who to root for" file (data/rooting-YEAR.json) and the history chart (data/history-YEAR.json). Optional:
+# if either step fails, the data update above still stands; the page hides that panel or computes the chart itself.
 import subprocess
-for label, cmd in (('rooting guide', ['node', os.path.join(os.path.dirname(__file__), 'rooting.js')]),):
+for label, cmd in (('rooting guide', ['node', os.path.join(os.path.dirname(__file__), 'rooting.js')]),
+                   ('history chart', ['node', os.path.join(os.path.dirname(__file__), 'history.js')])):
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         print(p.stdout.strip() or p.stderr.strip())

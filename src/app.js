@@ -166,11 +166,27 @@ async function runAllInner(my, reason) {
   runSwing().catch(e => { if (e !== STALE) console.error('Swing failed:', e); });
   runHistory().catch(e => { if (e !== STALE) console.error('History failed:', e); });
 }
+// The week-by-week chart: read from data/history-YEAR.json, which the refresh writes for the current data;
+// computed here only if that file is missing or out of date.
+function validHistory(d) {
+  try {
+    return !!d && d.season === YEAR && d.scale === 1000 && Array.isArray(d.weeks) && d.weeks.length <= 25 && typeof d.basedOn === 'string' &&
+      d.weeks.every(w => Number.isInteger(w.week) && w.week >= 0 && w.week <= 25 && M.TEAMS.every(t => Array.isArray(w.teams[t]) && w.teams[t].length === 3 && w.teams[t].every(v => Number.isInteger(v) && v >= 0 && v <= 1000)));
+  } catch (e) { return false; }
+}
 async function runHistory() {
   const token = YEAR + '|' + season.updatedAt;
   if (HIST && histToken === token) { renderHistory(); return; }
   histToken = token; HIST = null; renderHistory();
-  const h = await job('hist', { sims: 2000 });
+  let h = null;
+  if (DB) {
+    try {
+      const s = await DB.doc('history/' + YEAR).get(), d = s.exists ? s.data() : null;
+      if (validHistory(d) && d.basedOn === season.updatedAt) h = d.weeks.map(w => ({ week: w.week, teams: Object.fromEntries(M.TEAMS.map(t => [t, w.teams[t].map(v => v / d.scale)])) }));
+    } catch (e) {}
+    if (token !== histToken) return;
+  }
+  if (!h) h = await job('hist', { sims: 2000 });
   if (token !== histToken) return;
   HIST = h; renderHistory(); renderOverview();
 }

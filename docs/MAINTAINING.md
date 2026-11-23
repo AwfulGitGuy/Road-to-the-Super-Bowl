@@ -9,6 +9,7 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | `index.html` | The whole page, assembled from `src/` by `scripts/build_page.py`. It reads its data from the `data/` folder next to it. |
 | `src/` | The page's source: `model.js` (the simulation), `app.js` (the page), `page_head.html` and `page_body.html` (layout and styles), and the score-only rating (`perf.js`, `perf_const.json`). **Edit these, then run `python scripts/build_page.py`**, rather than editing `index.html` directly. |
 | `data/rooting-YYYY.json` | "Who to root for": every team's chances (make playoffs, win division, #1 seed, win Super Bowl) after each result of the coming week's games; during the playoffs, chances to reach and win the Super Bowl after each result of the round's other games. Rebuilt by the refresh. |
+| `data/history-YYYY.json` | The week-by-week odds behind each team's history chart, rebuilt by the refresh whenever the season's data changes (the page computes them itself if this file is missing or out of date). |
 | `data/config.json` | Which season is current, its Super Bowl, number of games, and when the refresh stops for the year. |
 | `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats, playoff games. |
 | `data/priors-YYYY.json` | Each season's starting values, carried over from the season before. |
@@ -18,6 +19,7 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | `scripts/new_season.py` | The yearly setup: once next season's schedule is published, builds its starting values and data files. |
 | `scripts/build_data.py`, `scripts/rollover.py`, `scripts/common.py` | The work behind those two, including the safety checks. |
 | `scripts/rooting.js` | Builds the "who to root for" file by playing the same 10,000 seasons twice for each game (once with each result). Runs with Node, which GitHub's machines already have; if it fails, the refresh carries on and the page hides that panel. |
+| `scripts/history.js` | Builds `data/history-YYYY.json` with the same model code the page uses (Node, like the rooting step; optional in the same way). `node scripts/history.js 2025` rebuilds a past season's file. |
 | `scripts/build_page.py` | Assembles `index.html` from `src/`. |
 | `scripts/report_failure.sh`, `scripts/report_success.sh` | Open and close the "job failed" issue. |
 | `scripts/health_check.sh` | Run by each refresh: asks GitHub to rebuild the site if a deploy failed, and raises the alarm if a workflow was turned off. |
