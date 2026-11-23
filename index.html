@@ -2327,12 +2327,15 @@ function renderHistory() {
   const S = [{ k: 0, label: 'Make playoffs', cls: 's1', col: 'var(--bar)' }, { k: 1, label: 'Win division', cls: 's2', col: 'var(--accent)' }, { k: 2, label: 'Win Super Bowl', cls: 's3', col: 'var(--ink-3)' }];
   $('#histlegend').innerHTML = S.map(s => `<span><i style="background:${s.col}"></i>${s.label}</span>`).join('');
   const pts = HIST.map(h => ({ week: h.week, v: h.teams[focus] || [0, 0, 0] }));
-  const W = 900, H = 260, L = 44, R = 110, T = 14, B = 30, n = pts.length;
+  // Drawn at the box's real width (one unit = one pixel), so text stays readable on phones instead of shrinking.
+  const W = Math.max(300, Math.min(900, Math.round(el.clientWidth || 900))), narrow = W < 600;
+  const H = narrow ? 230 : 260, L = narrow ? 36 : 44, R = narrow ? 92 : 110, T = 14, B = 30, n = pts.length;
+  const every = Math.max(1, Math.ceil(n * (narrow ? 30 : 46) / (W - L - R)));      // label every week, or every 2nd/3rd if crowded
   const x = i => L + (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1));
   const y = v => T + (1 - v) * (H - T - B);
   let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(M.NAMES[focus])} odds after each week">`;
   for (const g of [0, 0.25, 0.5, 0.75, 1]) s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(g)}" y2="${y(g)}"/><text x="${L - 8}" y="${y(g) + 4}" text-anchor="end">${g * 100}%</text>`;
-  pts.forEach((p, i) => { s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${p.week === 0 ? 'Pre' : 'Wk ' + p.week}</text>`; });
+  pts.forEach((p, i) => { if (i === n - 1 || (i % every === 0 && n - 1 - i >= every)) s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${p.week === 0 ? 'Pre' : (narrow ? '' : 'Wk ') + p.week}</text>`; });
   for (const sr of S) {
     s += `<polyline class="${sr.cls}" points="${pts.map((p, i) => `${x(i)},${y(p.v[sr.k])}`).join(' ')}"/>`;
     pts.forEach((p, i) => { s += `<circle class="${sr.cls}d" cx="${x(i)}" cy="${y(p.v[sr.k])}" r="${i === n - 1 ? 5 : 3.5}"/>`; });
@@ -2340,11 +2343,12 @@ function renderHistory() {
   // direct labels at the right end, nudged apart so they never overlap
   const ends = S.map(sr => ({ sr, v: pts[n - 1].v[sr.k], yy: y(pts[n - 1].v[sr.k]) })).sort((a, b) => b.yy - a.yy);
   for (let i = 0; i < ends.length; i++) ends[i].yy = Math.min(ends[i].yy, i ? ends[i - 1].yy - 15 : H - B - 2);   // stack upward so labels never overlap
-  for (const e of ends) s += `<text class="lbl" x="${x(n - 1) + 10}" y="${Math.max(T + 8, e.yy) + 4}">${e.v === 0 ? '0%' : pct(e.v, true)} ${e.sr.label.replace('Win ', '').replace('Make ', '')}</text>`;
+  const short = l => narrow ? ({ 'Make playoffs': 'playoffs', 'Win division': 'division', 'Win Super Bowl': 'SB' })[l] : l.replace('Win ', '').replace('Make ', '');
+  for (const e of ends) s += `<text class="lbl" x="${x(n - 1) + 10}" y="${Math.max(T + 8, e.yy) + 4}">${e.v === 0 ? '0%' : pct(e.v, true)} ${short(e.sr.label)}</text>`;
   s += `<line class="cross" id="hx" x1="0" x2="0" y1="${T}" y2="${H - B}" visibility="hidden"/>`;
   pts.forEach((p, i) => { const w = (W - L - R) / Math.max(1, n - 1); s += `<rect class="hit" x="${x(i) - w / 2}" y="${T}" width="${w}" height="${H - T - B}" data-i="${i}"/>`; });
   s += '</svg><div class="tip multi" hidden></div>';
-  el.innerHTML = s;
+  el.innerHTML = s; histW = el.clientWidth;
   const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), hx = svg.querySelector('#hx');
   svg.addEventListener('pointermove', e => {
     const h = e.target.closest('rect.hit'); if (!h) { tip.hidden = true; hx.setAttribute('visibility', 'hidden'); return; }
@@ -2355,6 +2359,10 @@ function renderHistory() {
   });
   svg.addEventListener('pointerleave', () => { tip.hidden = true; hx.setAttribute('visibility', 'hidden'); });
 }
+
+// Redraw the chart when its width changes enough (phone rotated, window resized).
+let histW = 0;
+window.addEventListener('resize', () => { const w = $('#histchart').clientWidth; if (HIST && focus && Math.abs(w - histW) > 40) { histW = w; renderHistory(); } });
 
 // ---- seasons and live data ----
 // Data files are checked before use, so a malformed or tampered file can't inject anything into the page.
