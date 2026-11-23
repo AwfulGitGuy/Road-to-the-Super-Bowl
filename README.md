@@ -14,6 +14,7 @@ An NFL season simulator. It plays out the rest of the season 10,000 times to est
 - **See the projected bracket:** the likeliest playoff field and who's favored in each round.
 - **Look back:** past seasons (2021 onward) with the full playoff bracket and how the odds moved all year.
 - **Share a team:** add its code to the link, for example [`#PIT`](https://awfulgitguy.github.io/Road-to-the-Super-Bowl/#PIT) or [`#BUF`](https://awfulgitguy.github.io/Road-to-the-Super-Bowl/#BUF).
+- **On a phone:** a tab bar at the bottom switches between your team, the league, all teams, the bracket and the schedule. Links can open a tab directly, for example [`#PIT/schedule`](https://awfulgitguy.github.io/Road-to-the-Super-Bowl/#PIT/schedule).
 - **Share a scenario:** "Copy link" (next to your picks) copies a link with your team, your what-if picks and quarterback choices, so whoever opens it sees the same season.
 
 ## How it works

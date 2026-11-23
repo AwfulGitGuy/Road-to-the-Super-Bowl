@@ -11,6 +11,7 @@ let YEAR = CFG.current;               // season being viewed
 let PRI = DEFAULT_PRIORS;             // that season's starting values
 let season = SNAPSHOT;
 let HIST = null, histToken = '';
+let pendingJump = null;                     // desktop: a section to scroll to once the page has first drawn (#TEAM/schedule links)
 const pkey = k => `nfl.${k}.${YEAR}`;
 let picks = store.get(pkey('picks'), {});
 let qbPicks = store.get(pkey('qbpicks'), {});
@@ -163,6 +164,7 @@ async function runAllInner(my, reason) {
   for (const r of [base, cur]) r.teams.forEach(t => { t.perf = PR[t.abbr]; });
   $('#runstatus').textContent = nPicks ? `10,000 seasons · ${nPicks} what-if choice${nPicks > 1 ? 's' : ''} applied` : '10,000 simulated seasons';
   renderAll();
+  if (pendingJump) { const el = document.getElementById(TABS[pendingJump][0]); pendingJump = null; if (el && !el.hidden) jumpTo(el); }
   runSwing().catch(e => { if (e !== STALE) console.error('Swing failed:', e); });
   runHistory().catch(e => { if (e !== STALE) console.error('History failed:', e); });
 }
@@ -680,7 +682,24 @@ function renderProjected() {
 
 // ---- league overview, team picker, team links ----
 const ALIAS = { LAR: 'LA', JAC: 'JAX', WSH: 'WAS', OAK: 'LV', SD: 'LAC', STL: 'LA' };
-function hashTeam() { let h = ''; try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) {} h = h.split(';')[0].toUpperCase(); const t = ALIAS[h] || h; return M.TEAMS.includes(t) ? t : null; }
+function hashTeam() { let h = ''; try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) {} h = h.split(';')[0].split('/')[0].toUpperCase(); const t = ALIAS[h] || h; return M.TEAMS.includes(t) ? t : null; }
+// ---- phone tabs: #TEAM/schedule opens that tab (desktop scrolls to it instead) ----
+const TABS = { team: ['focus-sec', 'hist-sec'], league: ['ov-sec', 'how-sec'], teams: ['table-sec'], bracket: ['proj-sec', 'po-sec'], schedule: ['sched-sec'] };
+const phone = matchMedia('(max-width:700px)');
+let tab = 'team';
+function hashTab() { let h = ''; try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) {} const t = (h.split(';')[0].split('/')[1] || '').toLowerCase(); return t in TABS ? t : null; }
+const tabHash = () => '#' + (focus || '') + (tab !== 'team' ? '/' + tab : '');
+const tabOf = el => { const sec = el.closest('section'); return Object.keys(TABS).find(k => sec && TABS[k].includes(sec.id)) || null; };
+function setTab(t, keepScroll, keepUrl) {
+  if (!(t in TABS)) t = 'team';
+  tab = t;
+  for (const [k, ids] of Object.entries(TABS)) for (const id of ids) { const el = document.getElementById(id); if (el) el.classList.toggle('tab-off', k !== t); }
+  document.body.classList.toggle('tab-other', t !== 'team' && !!focus);   // first-time visitors keep the full intro
+  document.querySelectorAll('#tabbar [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === t ? 'page' : 'false'));
+  if (!keepUrl) try { history.replaceState(null, '', tabHash()); } catch (e) {}
+  if (phone.matches && !keepScroll) window.scrollTo(0, 0);
+  if (t === 'team' && HIST && focus && Math.abs($('#histchart').clientWidth - histW) > 40) renderHistory();   // drawn while hidden
+}
 // ---- shareable links: #TEAM;y=YEAR;p=WK_AWAY_HOME:h,...;q=TEAM:PLAYERID,... (picks as home/away winner) ----
 function openGames() {
   const ix = Object.fromEntries(season.fields.map((k, i) => [k, i])), out = new Map();
@@ -713,19 +732,21 @@ function applySharedHash() {
   }
   const n = Object.keys(np).length + Object.keys(nq).length;
   if (n) { picks = np; qbPicks = nq; store.set(pkey('picks'), picks); store.set(pkey('qbpicks'), qbPicks); }
-  const t = hashTeam();
-  try { history.replaceState(null, '', t ? '#' + t : location.pathname + location.search); } catch (e) {}
+  const t = hashTeam(), tb = hashTab();
+  try { history.replaceState(null, '', t ? '#' + t + (tb && tb !== 'team' ? '/' + tb : '') : location.pathname + location.search); } catch (e) {}
   return n;
 }
 const tl = t => `<button type="button" class="tlink${t === focus ? ' me' : ''}" data-team="${t}">${chip(t)}${esc(M.NAMES[t])}</button>`;
 function setFocus(t, scroll) {
   if (!M.TEAMS.includes(t)) return;
   focus = t; store.set('nfl26.focus', focus);
-  try { history.replaceState(null, '', '#' + t); } catch (e) {}
+  if (scroll && phone.matches) tab = 'team';
+  try { history.replaceState(null, '', tabHash()); } catch (e) {}
   fillTeams();
   if (!cur) return;                          // first simulation still running; it will render this team
   renderAll(); runSwing().catch(e => { if (e !== STALE) console.error('Swing failed:', e); }); renderHistory();
   if (scroll) jumpTo($('#focus-sec'));
+  else updateNav();
 }
 function fillTeams() {
   const opts = M.TEAMS.map(t => [t, M.NAMES[t]]).sort((a, b) => a[1].localeCompare(b[1]));
@@ -785,6 +806,8 @@ const navBtns = () => [...NAV.querySelectorAll('[data-jump]')];
 function updateNav() {
   navBtns().forEach(b => { const el = document.getElementById(b.dataset.jump); b.hidden = !el || el.hidden; });
   $('#nav-team').textContent = focus ? M.NAMES[focus] : 'Your team';
+  $('#tab-team').textContent = focus ? M.NAMES[focus] : 'My team';
+  document.body.classList.toggle('tab-other', tab !== 'team' && !!focus);
   markNav(); navFade();
 }
 let navCur = null;
@@ -812,15 +835,18 @@ NAV.addEventListener('click', e => {
 });
 // scroll to a section; if something above it finished drawing and grew meanwhile, settle on it once scrolling stops
 function jumpTo(el) {
+  if (phone.matches) { const t = tabOf(el); if (t) { setTab(t, true); if (t === 'team' && el.id === 'focus-sec') { window.scrollTo(0, 0); return; } } }
   el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   let done = false;
   const fix = () => { if (done) return; done = true; window.removeEventListener('scrollend', fix); const off = el.getBoundingClientRect().top - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0); if (Math.abs(off) > 8) el.scrollIntoView({ block: 'start' }); };
   window.addEventListener('scrollend', fix);
   setTimeout(fix, 1200);
 }
+$('#tabbar').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
 window.addEventListener('hashchange', () => {
-  const t = hashTeam(), n = applySharedHash();
-  if (t && t !== focus) setFocus(t, true);
+  const t = hashTeam(), tb = hashTab(), n = applySharedHash();
+  if (t && t !== focus) setFocus(t, !tb);
+  if (tb && tb !== tab) { if (phone.matches) setTab(tb); else { const el = document.getElementById(TABS[tb][0]); if (el && !el.hidden) jumpTo(el); } }
   if (n) { week = null; runAll(`Loaded ${n} shared pick${n > 1 ? 's' : ''}. Re-running…`); }
 });
 
@@ -995,6 +1021,9 @@ $('#seasonsel').addEventListener('change', e => loadSeason(+e.target.value));
 focus = hashTeam() || (M.TEAMS.includes(store.get('nfl26.focus', '')) ? store.get('nfl26.focus', '') : '');
 fillTeams();
 fillSeasons();
+const tab0 = hashTab();
+setTab(tab0 || (focus ? 'team' : 'league'), true, true);   // the address may still hold shared picks; applySharedHash reads and trims it
+if (tab0 && tab0 !== 'team' && !phone.matches) pendingJump = tab0;
 $('#runstatus').textContent = 'Loading the latest results…';
 
 (async () => {
