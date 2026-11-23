@@ -1645,6 +1645,18 @@ async function runSwing() {
   swing = null;
   if (!g) { renderNext(); return; }
   const token = focus + g.id + JSON.stringify(picks) + JSON.stringify(qbPicks);
+  // Without what-if picks, the rooting file already has this game both ways (10,000 paired seasons).
+  if (!Object.keys(picks).length && !Object.keys(qbPicks).length) {
+    await loadRooting();
+    if (my !== runId || token !== focus + g.id + JSON.stringify(picks) + JSON.stringify(qbPicks)) return;
+    const k = ROOT && ROOT.phase === 'regular' && ROOT.basedOn === season.updatedAt ? ROOT.goals.indexOf('playoff') : -1;
+    const rg = k >= 0 ? ROOT.games.find(x => x.id === g.id) : null;
+    if (rg) {
+      const [win, lose] = rg.home === focus ? [rg.ifHome, rg.ifAway] : [rg.ifAway, rg.ifHome];
+      swing = { id: g.id, win: win[focus][k] / 1000, lose: lose[focus][k] / 1000 };
+      renderNext(); return;
+    }
+  }
   const [w, l] = await Promise.all([
     sim({ sims: 6000, qbPicks, picks: { ...picks, [g.id]: focus } }),
     sim({ sims: 6000, qbPicks, picks: { ...picks, [g.id]: g.home === focus ? g.away : g.home } }),
@@ -2029,11 +2041,15 @@ function validRooting(d) {
       d.games.every(x => RX.gid.test(x.id) && M.TEAMS.includes(x.away) && M.TEAMS.includes(x.home) && okT(x.ifHome) && okT(x.ifAway));
   } catch (e) { return false; }
 }
-async function loadRooting() {
+let rootLoading = Promise.resolve();
+function loadRooting() {                     // returns a promise that settles once the rooting file is loaded (or not)
   const token = YEAR + '|' + season.updatedAt;
-  if (!DB || token === rootToken) return;
+  if (!DB || token === rootToken) return rootLoading;
   rootToken = token; ROOT = null;
-  try { const s = await DB.doc('rooting/' + YEAR).get(); if (token === rootToken && s.exists && validRooting(s.data())) { ROOT = s.data(); renderRoot(); renderMatter(); } } catch (e) {}
+  rootLoading = (async () => {
+    try { const s = await DB.doc('rooting/' + YEAR).get(); if (token === rootToken && s.exists && validRooting(s.data())) { ROOT = s.data(); renderRoot(); renderMatter(); } } catch (e) {}
+  })();
+  return rootLoading;
 }
 function renderRoot() {
   const box = $('#rootbox');
