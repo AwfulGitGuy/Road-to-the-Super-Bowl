@@ -2,7 +2,7 @@
 
 Run from anywhere:  python scripts/new_season.py
 - Does nothing (and succeeds) if next season's schedule isn't out yet.
-- Reads the Super Bowl venue from data/super_bowl_hosts.json (add each new season's entry).
+- Reads the Super Bowl venue from data/super_bowl_hosts.json (kept filled in from Wikipedia by sb_sites.py, run first).
 - Stops with an error, saving nothing, if the league's format looks different
   (team list, games per team, divisions) so the page can be updated first.
 """

@@ -12,7 +12,7 @@ year, games = cfg['current'], cfg['games']
 today = datetime.date.today().isoformat()
 
 if today > cfg.get('endDate', '9999'):
-    print(f'The {year} regular season is over; nothing to refresh until the new season is set up.')
+    print(f'The {year} season is over (Super Bowl played); nothing to refresh until the new season is set up.')
     raise SystemExit(0)
 
 tmp = workdir()

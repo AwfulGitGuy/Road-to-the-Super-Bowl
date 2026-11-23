@@ -12,14 +12,17 @@ Everything runs on GitHub: **GitHub Actions** refreshes the data and sets up eac
 | `data/config.json` | Which season is current, its Super Bowl, number of games, and when the refresh stops for the year. |
 | `data/season-YYYY.json` | One file per season: schedule, scores, betting lines, starting quarterbacks, QB stats, playoff games. |
 | `data/priors-YYYY.json` | Each season's starting values, carried over from the season before. |
-| `data/super_bowl_hosts.json` | Where each Super Bowl is played. **The one file you update by hand, once a year (optional).** |
+| `data/super_bowl_hosts.json` | Where each Super Bowl is played. Filled in automatically from Wikipedia by the new-season job (see "Super Bowl sites"); you can also edit it by hand. |
+| `data/cancelled_games.json` | Games the NFL cancelled outright (normally empty). See "How you'll hear about problems". |
 | `scripts/update.py` | The refresh: downloads the latest nflverse files and rebuilds the current season's data. |
 | `scripts/new_season.py` | The yearly setup: once next season's schedule is published, builds its starting values and data files. |
 | `scripts/build_data.py`, `scripts/rollover.py`, `scripts/common.py` | The work behind those two, including the safety checks. |
 | `scripts/rooting.js` | Builds the "who to root for" file by playing the same 10,000 seasons twice for each game (once with each result). Runs with Node, which GitHub's machines already have; if it fails, the refresh carries on and the page hides that panel. |
 | `scripts/build_page.py` | Assembles `index.html` from `src/`. |
 | `scripts/report_failure.sh`, `scripts/report_success.sh` | Open and close the "job failed" issue. |
-| `.github/workflows/` | The two jobs (data refresh and new-season setup), started by the cron-job.org timer or by hand from the Actions tab. On a computer that hides folders starting with a dot, the files are easiest to view on GitHub. |
+| `scripts/health_check.sh` | Run by each refresh: asks GitHub to rebuild the site if a deploy failed, and raises the alarm if a workflow was turned off. |
+| `tests/` | Offline tests of the model, the data checks and the page build. They run on GitHub (the "Build check" workflow) whenever the code changes. |
+| `.github/workflows/` | The data refresh and new-season setup, started by the cron-job.org timer or by hand from the Actions tab, and the build check that runs the tests on code changes. On a computer that hides folders starting with a dot, the files are easiest to view on GitHub. |
 
 ## What happens on its own
 
@@ -87,7 +90,7 @@ If the league changes the number of teams or games, the divisions, or the playof
 
 ## Security
 
-- **No secrets, logins, or personal data.** The site has no accounts, forms, cookies, or analytics. Visitors' team choices and what-if picks stay in their own browser. Inside GitHub, the jobs use only GitHub's built-in per-run token, limited to this repository. The one outside key belongs to the cron-job.org timer: it is limited to this repository and can only start, re-run or cancel workflow runs (it can't read or change code), and it is stored only in that cron-job.org account, never in this repository.
+- **No secrets, logins, or personal data.** The site has no accounts, forms, cookies, or analytics. Visitors' team choices and what-if picks stay in their own browser. Inside GitHub, the jobs use only GitHub's built-in per-run token, limited to this repository. The one outside key belongs to the cron-job.org timer: it is limited to this repository and can only manage workflow runs (start, re-run, cancel, or turn a workflow off; it can't read or change code; a workflow turned off raises the alarm), and it is stored only in that cron-job.org account, never in this repository.
 - **Untrusted input is checked twice.** The refresh script rejects data with unexpected team codes, IDs, dates, or characters, and the page ignores any data file that fails the same checks.
 - **Locked-down page.** The page tells browsers it may only load its own files and Google Fonts, and may send data nowhere.
 - **Pinned building blocks.** The workflows use exact commits of GitHub's official `checkout` and `setup-python` actions.
