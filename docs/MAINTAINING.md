@@ -92,7 +92,7 @@ If the league changes the number of teams or games, the divisions, or the playof
 
 - **No secrets, logins, or personal data.** The site has no accounts, forms, cookies, or analytics. Visitors' team choices and what-if picks stay in their own browser. Inside GitHub, the jobs use only GitHub's built-in per-run token, limited to this repository. The one outside key belongs to the cron-job.org timer: it is limited to this repository and can only manage workflow runs (start, re-run, cancel, or turn a workflow off; it can't read or change code; a workflow turned off raises the alarm), and it is stored only in that cron-job.org account, never in this repository.
 - **Untrusted input is checked twice.** The refresh script rejects data with unexpected team codes, IDs, dates, or characters, and the page ignores any data file that fails the same checks.
-- **Locked-down page.** The page tells browsers it may only load its own files and Google Fonts, and may send data nowhere.
+- **Locked-down page.** The page tells browsers it may only load its own files and Google Fonts, and may send data nowhere else. Loading the fonts does mean each visitor's browser contacts Google (which sees their IP address), as with any site using Google Fonts; serving the fonts from this repository would remove that (planned for the offseason).
 - **Pinned building blocks.** The workflows use exact commits of GitHub's official `checkout` and `setup-python` actions.
 - **On your side:** keep two-factor sign-in on for GitHub, and limit the Claude GitHub App to only the repositories it needs (or remove it when you're not making changes with Claude).
 
