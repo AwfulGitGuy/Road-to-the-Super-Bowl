@@ -26,18 +26,28 @@ let PR = null;
 let worker = null;
 try {
   const src = document.getElementById('model-src').textContent +
-    '\nself.onmessage=e=>{const {id,kind,season,opts}=e.data;const res=kind==="hist"?NFLModel.history(season,opts):NFLModel.simulate(season,opts);self.postMessage({id,res});};';
+    '\nself.onmessage=e=>{const {id,kind,season,opts}=e.data;try{const res=kind==="hist"?NFLModel.history(season,opts):NFLModel.simulate(season,opts);self.postMessage({id,res});}catch(err){self.postMessage({id,error:String(err&&err.message||err)});}};';
   worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
 } catch (e) { worker = null; }
 const pending = new Map();
-if (worker) worker.onmessage = e => { const f = pending.get(e.data.id); pending.delete(e.data.id); f && f(e.data.res); };
+if (worker) {
+  worker.onmessage = e => {
+    const f = pending.get(e.data.id); pending.delete(e.data.id);
+    if (f) e.data.error ? f.reject(new Error(e.data.error)) : f.resolve(e.data.res);
+  };
+  // If the background thread itself breaks, fail its jobs (so nothing waits forever) and run later jobs on the page.
+  worker.onerror = e => {
+    for (const f of pending.values()) f.reject(new Error(e.message || 'simulation stopped'));
+    pending.clear(); worker = null; e.preventDefault && e.preventDefault();
+  };
+}
 // Super Bowl host team(s): from the data once the game is listed, otherwise from the season's setup.
 const sbHosts = () => (season.sbSite && Array.isArray(season.sbSite.hosts) ? season.sbSite.hosts : (PRI.sb || CFG.sb || {}).hosts) || [];
 function job(kind, opts) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     opts = { qbPrior: PRI.qb, marketPrior: PRI.market, sbHosts: sbHosts(), ...opts };
-    if (worker) { const id = ++jobSeq; pending.set(id, resolve); worker.postMessage({ id, kind, season, opts }); }
-    else setTimeout(() => resolve(kind === 'hist' ? M.history(season, opts) : M.simulate(season, opts)), 0);
+    if (worker) { const id = ++jobSeq; pending.set(id, { resolve, reject }); worker.postMessage({ id, kind, season, opts }); }
+    else setTimeout(() => { try { resolve(kind === 'hist' ? M.history(season, opts) : M.simulate(season, opts)); } catch (e) { reject(e); } }, 0);
   });
 }
 const sim = opts => job('sim', opts);
@@ -120,6 +130,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 let runId = 0;
 async function runAll(reason) {
   const my = ++runId;                       // a newer run (e.g. another season) makes this one stale
+  try { await runAllInner(my, reason); }
+  catch (e) {
+    console.error('Simulation failed:', e);
+    if (my === runId) $('#runstatus').textContent = cur ? "Couldn't update the simulation; showing the last results." : "Couldn't run the simulation. Try reloading the page.";
+  }
+}
+async function runAllInner(my, reason) {
   $('#runstatus').textContent = reason || 'Simulating 10,000 seasons…';
   const nPicks = Object.keys(picks).length + Object.keys(qbPicks).length;
   const b = base || await sim({ sims: 10000 });
@@ -132,8 +149,8 @@ async function runAll(reason) {
   for (const r of [base, cur]) r.teams.forEach(t => { t.perf = PR[t.abbr]; });
   $('#runstatus').textContent = nPicks ? `10,000 seasons · ${nPicks} what-if choice${nPicks > 1 ? 's' : ''} applied` : '10,000 simulated seasons';
   renderAll();
-  runSwing();
-  runHistory();
+  runSwing().catch(e => console.error('Swing failed:', e));
+  runHistory().catch(e => console.error('History failed:', e));
 }
 async function runHistory() {
   const token = YEAR + '|' + season.updatedAt;
