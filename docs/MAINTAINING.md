@@ -98,15 +98,19 @@ If the league changes the number of teams or games, the divisions, or the playof
 
 ## Running it on your own computer (optional)
 
-With Python 3 installed, from the repository folder:
+You need Python 3 and Node (for the "who to root for" step and the tests). From the repository folder:
 
 ```
-python scripts/update.py          # refresh the current season's data
-python scripts/new_season.py      # set up next season, if its schedule is out
+python scripts/build_page.py      # after editing anything in src/: rebuild index.html
+node tests/test_model.js          # tests (they also run on GitHub when the code changes)
+python tests/test_build_data.py
+python tests/check_page.py
 python -m http.server 8000        # then open http://localhost:8000
 ```
 
 Open the page through that local server rather than by double-clicking `index.html`, so it can read the data files.
+
+`python scripts/update.py` (refresh the data) and `python scripts/new_season.py` (set up next season) also run locally, but **don't commit the data files they change**: the refresh on GitHub commits `data/` every 10 minutes during the season, and your copy would clash with it. Commit code and docs only, and pull first (`git pull --rebase`).
 
 ## How the model works (short version)
 
