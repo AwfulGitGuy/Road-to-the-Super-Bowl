@@ -1478,15 +1478,29 @@ try {
   worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
 } catch (e) { worker = null; }
 const pending = new Map();
+// Jobs run one at a time. A job made for a run that has since been replaced (new data, another pick) is dropped
+// with STALE instead of computed, so the current numbers never wait behind outdated ones.
+const STALE = new Error('superseded'), queue = [];
+let busy = false;
+function pump() {
+  if (busy) return;
+  let j;
+  while ((j = queue.shift()) && j.gen < runId) j.reject(STALE);
+  if (!j) return;
+  busy = true;
+  const done = f => v => { busy = false; f(v); pump(); };
+  if (worker) { pending.set(j.id, { resolve: done(j.resolve), reject: done(j.reject) }); worker.postMessage({ id: j.id, kind: j.kind, season: j.season, opts: j.opts }); }
+  else setTimeout(() => { let r, err; try { r = j.kind === 'hist' ? M.history(j.season, j.opts) : M.simulate(j.season, j.opts); } catch (e) { err = e; } err ? done(j.reject)(err) : done(j.resolve)(r); }, 0);
+}
 if (worker) {
   worker.onmessage = e => {
     const f = pending.get(e.data.id); pending.delete(e.data.id);
     if (f) e.data.error ? f.reject(new Error(e.data.error)) : f.resolve(e.data.res);
   };
-  // If the background thread itself breaks, fail its jobs (so nothing waits forever) and run later jobs on the page.
+  // If the background thread itself breaks, fail its job (so nothing waits forever) and run later jobs on the page.
   worker.onerror = e => {
-    for (const f of pending.values()) f.reject(new Error(e.message || 'simulation stopped'));
-    pending.clear(); worker = null; e.preventDefault && e.preventDefault();
+    worker = null; e.preventDefault && e.preventDefault();
+    const fs = [...pending.values()]; pending.clear(); fs.forEach(f => f.reject(new Error(e.message || 'simulation stopped')));
   };
 }
 // Super Bowl host team(s): from the data once the game is listed, otherwise from the season's setup.
@@ -1494,8 +1508,7 @@ const sbHosts = () => (season.sbSite && Array.isArray(season.sbSite.hosts) ? sea
 function job(kind, opts) {
   return new Promise((resolve, reject) => {
     opts = { qbPrior: PRI.qb, marketPrior: PRI.market, sbHosts: sbHosts(), ...opts };
-    if (worker) { const id = ++jobSeq; pending.set(id, { resolve, reject }); worker.postMessage({ id, kind, season, opts }); }
-    else setTimeout(() => { try { resolve(kind === 'hist' ? M.history(season, opts) : M.simulate(season, opts)); } catch (e) { reject(e); } }, 0);
+    queue.push({ id: ++jobSeq, gen: runId, kind, season, opts, resolve, reject }); pump();
   });
 }
 const sim = opts => job('sim', opts);
@@ -1580,6 +1593,7 @@ async function runAll(reason) {
   const my = ++runId;                       // a newer run (e.g. another season) makes this one stale
   try { await runAllInner(my, reason); }
   catch (e) {
+    if (e === STALE) return;                // replaced by a newer run
     console.error('Simulation failed:', e);
     if (my === runId) $('#runstatus').textContent = cur ? "Couldn't update the simulation; showing the last results." : "Couldn't run the simulation. Try reloading the page.";
   }
@@ -1597,8 +1611,8 @@ async function runAllInner(my, reason) {
   for (const r of [base, cur]) r.teams.forEach(t => { t.perf = PR[t.abbr]; });
   $('#runstatus').textContent = nPicks ? `10,000 seasons · ${nPicks} what-if choice${nPicks > 1 ? 's' : ''} applied` : '10,000 simulated seasons';
   renderAll();
-  runSwing().catch(e => console.error('Swing failed:', e));
-  runHistory().catch(e => console.error('History failed:', e));
+  runSwing().catch(e => { if (e !== STALE) console.error('Swing failed:', e); });
+  runHistory().catch(e => { if (e !== STALE) console.error('History failed:', e); });
 }
 async function runHistory() {
   const token = YEAR + '|' + season.updatedAt;
@@ -2126,7 +2140,7 @@ function setFocus(t, scroll) {
   try { history.replaceState(null, '', '#' + t); } catch (e) {}
   fillTeams();
   if (!cur) return;                          // first simulation still running; it will render this team
-  renderAll(); runSwing(); renderHistory();
+  renderAll(); runSwing().catch(e => { if (e !== STALE) console.error('Swing failed:', e); }); renderHistory();
   if (scroll) jumpTo($('#focus-sec'));
 }
 function fillTeams() {
@@ -2405,12 +2419,26 @@ $('#seasonsel').addEventListener('change', e => loadSeason(+e.target.value));
 focus = hashTeam() || (M.TEAMS.includes(store.get('nfl26.focus', '')) ? store.get('nfl26.focus', '') : '');
 fillTeams();
 fillSeasons();
-const sharedN = applySharedHash();
-cleanPicks();
-runAll(sharedN ? `Loaded ${sharedN} shared pick${sharedN > 1 ? 's' : ''}. Simulating 10,000 seasons…` : undefined);
+$('#runstatus').textContent = 'Loading the latest results…';
 
 (async () => {
   DB = FileDB;
+  // Fetch the latest config, season and starting values (at most 2.5 seconds) before the first simulation, so a
+  // page load simulates once with current data. The copy built into the page is only a fallback.
+  if (DB) {
+    const get = p => DB.doc(p).get().then(x => (x.exists ? x.data() : null)).catch(() => null);
+    const got = await Promise.race([Promise.all([get('config/current'), get('season/' + YEAR), get('priors/' + YEAR)]), new Promise(r => setTimeout(() => r(null), 2500))]);
+    if (got) {
+      const [c, sn, p] = got;
+      if (c && validConfig(c)) { CFG = c; fillSeasons(); }
+      if (sn && validSeason(sn) && !(season.updatedAt && sn.season === season.season && sn.updatedAt < season.updatedAt)) season = sn;
+      if (p && validPriors(p)) PRI = p;
+    }
+  }
+  const sharedN = applySharedHash();
+  cleanPicks();
+  if (DB && CFG.current !== YEAR) await loadSeason(CFG.current);    // a new season was set up after this page was built
+  else runAll(sharedN ? `Loaded ${sharedN} shared pick${sharedN > 1 ? 's' : ''}. Simulating 10,000 seasons…` : undefined);
   if (!DB) return;
   watchSeason();
   let first = true;
@@ -2419,11 +2447,11 @@ runAll(sharedN ? `Loaded ${sharedN} shared pick${sharedN > 1 ? 's' : ''}. Simula
     const c = snap.data(); if (!validConfig(c)) return;
     const moved = c.current !== CFG.current;
     CFG = c; fillSeasons();
-    if (first || moved) {
+    if (moved && c.current !== YEAR) { first = false; await loadSeason(c.current); return; }
+    if (first) {                             // only matters if the first fetch above timed out
       first = false;
-      if (c.current !== YEAR) { await loadSeason(c.current); return; }
       const yr = YEAR;
-      try { const b = await DB.doc('priors/' + yr).get(); if (b.exists && YEAR === yr && validPriors(b.data())) { PRI = b.data(); base = null; runAll(); } } catch (e) {}
+      try { const b = await DB.doc('priors/' + yr).get(); if (b.exists && YEAR === yr && validPriors(b.data()) && JSON.stringify(b.data()) !== JSON.stringify(PRI)) { PRI = b.data(); base = null; runAll(); } } catch (e) {}
     }
   }, () => {});
 })();
