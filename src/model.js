@@ -295,17 +295,11 @@ const NFLModel = (() => {
     const lastWeek = Math.max(18, ...games.map(g => g.week));
     const weeksLeft = Math.max(0, lastWeek - lastPlayedWeek);
     const sd = opts.sd || SD;
-    const legacy = !!opts.legacy;
     // Rating drift: a random walk that starts after the latest posted lines (measured from 2006-2025 lines)
     const dm = opts.drift || 2, D0 = 2.1 * dm * dm, DW = 0.72 * dm * dm;
-    const shockSD = legacy ? Math.sqrt(1.5 * 1.5 + 2.5 * 2.5 * weeksLeft / 18) : Math.sqrt(D0 + DW * weeksLeft);
+    const shockSD = Math.sqrt(D0 + DW * weeksLeft);
 
     const fixed = done.map(g => ({ a: g.a, h: g.h, w: g.hs > g.as ? g.h : g.as > g.hs ? g.a : -1 }));
-    // "Who to root for": for chosen games, count how often the tracked team reaches each goal after each result.
-    const trk = opts.track && IDX[opts.track.team] !== undefined ? opts.track : null;
-    const tT = trk ? IDX[trk.team] : -1, tIdx = new Map(), tHome = [];
-    if (trk) (trk.games || []).forEach(id => { const g = left.find(x => x.id === id); if (g && picks[id] === undefined) { tIdx.set(id, tHome.length); tHome.push(g); } });
-    const tk = tHome.length, tW = new Uint8Array(tk), T = { hw: new Float64Array(tk), goal: ['playoff', 'div', 'bye'].map(() => ({ h: new Float64Array(tk), a: new Float64Array(tk) })) };
 
     const gpt = new Array(N).fill(0); for (const g of games) { gpt[g.h]++; gpt[g.a]++; }
     const maxG = Math.max(17, ...gpt);
@@ -346,22 +340,18 @@ const NFLModel = (() => {
     const walkWeeks = Math.max(1, lastWeek + 1 - L);
     const walk = Array.from({ length: N }, () => new Float64Array(walkWeeks + 1));
 
-    let tMade = [false, false, false];
     for (let s = 0; s < sims; s++) {
       rand = rng((seed0 ^ Math.imul(s + 1, 0x9E3779B1)) >>> 0);
       rT = rng(((seed0 + 0x7F4A7C15) ^ Math.imul(s + 1, 0x85EBCA6B)) >>> 0);
       rP = rng(((seed0 + 0x2545F491) ^ Math.imul(s + 1, 0xC2B2AE35)) >>> 0);
       const shock = new Float64Array(N);
-      if (legacy) for (let i = 0; i < N; i++) shock[i] = gauss(rand) * shockSD;
-      else {
-        for (let i = 0; i < N; i++) {
-          let v = gauss(rand) * Math.sqrt(D0);
-          walk[i][0] = v;
-          for (let k = 1; k <= walkWeeks; k++) { v += gauss(rand) * Math.sqrt(DW); walk[i][k] = v; }
-          shock[i] = v;                   // end-of-season strength, used in the playoffs
-        }
+      for (let i = 0; i < N; i++) {
+        let v = gauss(rand) * Math.sqrt(D0);
+        walk[i][0] = v;
+        for (let k = 1; k <= walkWeeks; k++) { v += gauss(rand) * Math.sqrt(DW); walk[i][k] = v; }
+        shock[i] = v;                     // end-of-season strength, used in the playoffs
       }
-      const off = (t, wk) => legacy ? shock[t] : walk[t][Math.min(walkWeeks, Math.max(0, wk - L - 1))];
+      const off = (t, wk) => walk[t][Math.min(walkWeeks, Math.max(0, wk - L - 1))];
       const res = fixed.slice();
       for (const g of left) {
         let w;
@@ -370,11 +360,10 @@ const NFLModel = (() => {
         else {
           const lined = g.spread !== null && g.spread !== undefined;
           const base = lined ? g.spread : fit.r[g.h] - fit.r[g.a] + (g.neutral ? 0 : fit.hfa) + g.qadj;
-          const p = (lined && !legacy) ? mp(base, 0) : mp(base, off(g.h, g.week) - off(g.a, g.week));
+          const p = lined ? mp(base, 0) : mp(base, off(g.h, g.week) - off(g.a, g.week));
           w = rand() < p ? g.h : g.a;
         }
         res.push({ a: g.a, h: g.h, w });
-        if (tk) { const k = tIdx.get(g.id); if (k !== undefined) tW[k] = w === g.h ? 1 : 0; }
         if (w === g.h) gameWin.set(g.id, (gameWin.get(g.id) || 0) + 1);
       }
       const st = makeStandings(res);
@@ -382,7 +371,6 @@ const NFLModel = (() => {
       const champs = {};
       for (const conf of ['AFC', 'NFC']) {
         const { seeds, divWinners } = seedConference(st, conf, rT);
-        if (tk && confOf[tT] === conf) { tMade = [seeds.includes(tT), divWinners.includes(tT), seeds[0] === tT]; }
         seeds.forEach((t, k) => { acc.playoff[t]++; acc.seed[t][k + 1]++; });
         divWinners.forEach(t => acc.div[t]++);
         acc.bye[seeds[0]]++;
@@ -410,7 +398,6 @@ const NFLModel = (() => {
       const uSB = rP();
       const winner = realSB !== undefined ? realSB : Phi((fit.r[champs.AFC] + shock[champs.AFC] + qbvPO(champs.AFC) - fit.r[champs.NFC] - shock[champs.NFC] - qbvPO(champs.NFC) + sofi) / sd) > uSB ? champs.AFC : champs.NFC;
       acc.sb[winner]++;
-      if (tk) for (let k = 0; k < tk; k++) { const hw = tW[k]; T.hw[k] += hw; for (let q = 0; q < 3; q++) if (tMade[q]) T.goal[q][hw ? 'h' : 'a'][k]++; }
     }
 
     const st = makeStandings(fixed);
@@ -437,12 +424,7 @@ const NFLModel = (() => {
       return [...seen.keys()].map(id => ({ id, name: qs.names[id] || id, pts: qs.now(id), recent: id === qs.recent[t] }));
     }
     const results = done.map(g => ({ id: g.id, week: g.week, date: g.date, away: TEAMS[g.a], home: TEAMS[g.h], as: g.as, hs: g.hs }));
-    const track = tk ? tHome.map((g, k) => {
-      const nh = T.hw[k], na = sims - nh, f = (x, n) => (n ? x / n : null);
-      return { id: g.id, week: g.week, date: g.date, time: g.time, away: TEAMS[g.a], home: TEAMS[g.h], neutral: g.neutral, pHome: nh / sims,
-        ifHome: T.goal.map(q => f(q.h[k], nh)), ifAway: T.goal.map(q => f(q.a[k], na)) };
-    }) : null;
-    return { teams, upcoming, results, maxGames: maxG, hfa: fit.hfa, ratingWeek: fit.latest, lastPlayedWeek, sims, shockSD, track, sd };
+    return { teams, upcoming, results, maxGames: maxG, hfa: fit.hfa, ratingWeek: fit.latest, lastPlayedWeek, sims, shockSD, sd };
   }
 
   // Seed a finished season from its results (for checking tiebreakers against real brackets)
