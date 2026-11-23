@@ -1,0 +1,32 @@
+name: Build check
+
+on:
+  # Runs when the page's source, the scripts or the tests change (not on the data refresh's own commits).
+  push:
+    branches: [main]
+    paths: ['src/**', 'scripts/**', 'tests/**', 'index.html', '.github/workflows/**']
+  pull_request:
+  workflow_dispatch:         # adds a "Run workflow" button on the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0, pinned to an exact commit
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0, pinned to an exact commit
+        with:
+          python-version: '3.x'
+      - name: Model tests (simulation, playoffs, tiebreakers)
+        run: node tests/test_model.js
+      - name: Data build tests (checks on nflverse data)
+        run: python tests/test_build_data.py
+      - name: index.html is up to date with src/
+        run: python tests/check_page.py
+      - name: Scripts compile
+        run: python -m py_compile scripts/*.py && bash -n scripts/*.sh
