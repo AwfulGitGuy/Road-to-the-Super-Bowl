@@ -45,6 +45,23 @@ base = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="Every NFL team's chances to make the playoffs, win its division and win the Super Bowl, from 10,000 simulated seasons. Updated all season, with what-if picks and quarterback changes.">
+<meta name="theme-color" content="#F2F3F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111316" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Link previews (texts, Discord, Reddit, social media). Image addresses must be complete, so the site address is spelled out. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Road to the Super Bowl">
+<meta property="og:title" content="Road to the Super Bowl: NFL playoff and Super Bowl odds">
+<meta property="og:description" content="Every team's chances to make the playoffs and win it all, from 10,000 simulated seasons. Updated all season.">
+<meta property="og:url" content="https://awfulgitguy.github.io/Road-to-the-Super-Bowl/">
+<meta property="og:image" content="https://awfulgitguy.github.io/Road-to-the-Super-Bowl/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Road to the Super Bowl: NFL season simulator">
+<meta name="twitter:card" content="summary_large_image">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
 """
 html = (base + head + "\n</head>\n<body>\n" + body
