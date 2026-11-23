@@ -634,7 +634,43 @@ function renderProjected() {
 
 // ---- league overview, team picker, team links ----
 const ALIAS = { LAR: 'LA', JAC: 'JAX', WSH: 'WAS', OAK: 'LV', SD: 'LAC', STL: 'LA' };
-function hashTeam() { const h = decodeURIComponent((location.hash || '').slice(1)).toUpperCase(); const t = ALIAS[h] || h; return M.TEAMS.includes(t) ? t : null; }
+function hashTeam() { let h = ''; try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) {} h = h.split(';')[0].toUpperCase(); const t = ALIAS[h] || h; return M.TEAMS.includes(t) ? t : null; }
+// ---- shareable links: #TEAM;y=YEAR;p=WK_AWAY_HOME:h,...;q=TEAM:PLAYERID,... (picks as home/away winner) ----
+function openGames() {
+  const ix = Object.fromEntries(season.fields.map((k, i) => [k, i])), out = new Map();
+  for (const r of season.games) if (r[ix.homeScore] === null || r[ix.homeScore] === undefined) out.set(r[ix.id], { away: r[ix.away], home: r[ix.home] });
+  return out;
+}
+function shareHash() {
+  const open = openGames(), parts = [focus || ''];
+  const ps = Object.entries(picks).map(([id, t]) => { const g = open.get(id); return g ? id.slice(5) + ':' + (t === g.home ? 'h' : 'a') : null; }).filter(Boolean);
+  const qs = Object.entries(qbPicks).filter(([t, q]) => M.TEAMS.includes(t) && RX.pid.test(q)).map(([t, q]) => t + ':' + q);
+  if (ps.length || qs.length) parts.push('y=' + YEAR);
+  if (ps.length) parts.push('p=' + ps.join(','));
+  if (qs.length) parts.push('q=' + qs.join(','));
+  return '#' + parts.join(';');
+}
+// Applies a shared scenario from the address bar (only open games of this season and known QBs are accepted),
+// then trims the address back to the team. Returns how many picks were loaded, or 0.
+function applySharedHash() {
+  let h = ''; try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) { return 0; }
+  const seg = h.split(';'); if (seg.length < 2) return 0;
+  const kv = Object.fromEntries(seg.slice(1).map(x => [x.slice(0, x.indexOf('=')), x.slice(x.indexOf('=') + 1)]));
+  if (+kv.y !== YEAR) return 0;
+  const open = openGames(), np = {}, nq = {};
+  for (const x of (kv.p || '').split(',')) {
+    const m = /^(\d{2}_[A-Z]{2,3}_[A-Z]{2,3}):([ah])$/.exec(x); if (!m) continue;
+    const id = YEAR + '_' + m[1], g = open.get(id); if (g) np[id] = m[2] === 'h' ? g.home : g.away;
+  }
+  for (const x of (kv.q || '').split(',')) {
+    const [t, q] = x.split(':'); if (M.TEAMS.includes(t) && RX.pid.test(q || '') && (season.qbNames || {})[q]) nq[t] = q;
+  }
+  const n = Object.keys(np).length + Object.keys(nq).length;
+  if (n) { picks = np; qbPicks = nq; store.set(pkey('picks'), picks); store.set(pkey('qbpicks'), qbPicks); }
+  const t = hashTeam();
+  try { history.replaceState(null, '', t ? '#' + t : location.pathname + location.search); } catch (e) {}
+  return n;
+}
 const tl = t => `<button type="button" class="tlink${t === focus ? ' me' : ''}" data-team="${t}">${chip(t)}${esc(M.NAMES[t])}</button>`;
 function setFocus(t, scroll) {
   if (!M.TEAMS.includes(t)) return;
@@ -708,7 +744,11 @@ function jumpTo(el) {
   window.addEventListener('scrollend', fix);
   setTimeout(fix, 1200);
 }
-window.addEventListener('hashchange', () => { const t = hashTeam(); if (t && t !== focus) setFocus(t, true); });
+window.addEventListener('hashchange', () => {
+  const t = hashTeam(), n = applySharedHash();
+  if (t && t !== focus) setFocus(t, true);
+  if (n) { week = null; runAll(`Loaded ${n} shared pick${n > 1 ? 's' : ''}. Re-running…`); }
+});
 
 function baseP(id) { const g = base.upcoming.find(x => x.id === id); return g ? g.pHome : 0.5; }
 
@@ -736,6 +776,13 @@ $('#games').addEventListener('click', e => {
   store.set(pkey('picks'), picks);
   renderWhatIf();
   runAll('Re-running with your picks…');
+});
+$('#sharepicks').addEventListener('click', async () => {
+  const url = location.href.split('#')[0] + shareHash(), b = $('#sharepicks'), box = $('#sharebox');
+  let ok = false;
+  try { await navigator.clipboard.writeText(url); ok = true; } catch (e) {}
+  if (ok) { box.hidden = true; b.textContent = 'Link copied'; setTimeout(() => { b.textContent = 'Copy link'; }, 2000); }
+  else { box.hidden = false; box.value = url; box.focus(); box.select(); }   // no clipboard access: show the link to copy by hand
 });
 $('#clearpicks').addEventListener('click', () => { picks = {}; qbPicks = {}; store.set(pkey('picks'), picks); store.set(pkey('qbpicks'), qbPicks); runAll('Re-running without picks…'); });
 const sel = $('#teamsel');
@@ -866,8 +913,9 @@ $('#seasonsel').addEventListener('change', e => loadSeason(+e.target.value));
 focus = hashTeam() || (M.TEAMS.includes(store.get('nfl26.focus', '')) ? store.get('nfl26.focus', '') : '');
 fillTeams();
 fillSeasons();
+const sharedN = applySharedHash();
 cleanPicks();
-runAll();
+runAll(sharedN ? `Loaded ${sharedN} shared pick${sharedN > 1 ? 's' : ''}. Simulating 10,000 seasons…` : undefined);
 
 (async () => {
   try { DB = await claude.use('db'); } catch (e) { DB = null; }
