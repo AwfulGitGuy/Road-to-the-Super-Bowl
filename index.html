@@ -2455,11 +2455,14 @@ $('#runstatus').textContent = 'Loading the latest results…';
 
 (async () => {
   DB = FileDB;
-  // Fetch the latest config, season and starting values (at most 2.5 seconds) before the first simulation, so a
-  // page load simulates once with current data. The copy built into the page is only a fallback.
+  // Fetch the latest config, season and starting values before the first simulation, so a page load simulates
+  // once with current data. The copy built into the page is only a fallback.
   if (DB) {
     const get = p => DB.doc(p).get().then(x => (x.exists ? x.data() : null)).catch(() => null);
-    const got = await Promise.race([Promise.all([get('config/current'), get('season/' + YEAR), get('priors/' + YEAR)]), new Promise(r => setTimeout(() => r(null), 2500))]);
+    // The copy built into the page can be weeks old, so it's used only if loading really fails (or takes over 12 s).
+    const slow = setTimeout(() => { $('#runstatus').textContent = 'Still loading the latest results…'; }, 2500);
+    const got = await Promise.race([Promise.all([get('config/current'), get('season/' + YEAR), get('priors/' + YEAR)]), new Promise(r => setTimeout(() => r(null), 12000))]);
+    clearTimeout(slow);
     if (got) {
       const [c, sn, p] = got;
       if (c && validConfig(c)) { CFG = c; fillSeasons(); }
