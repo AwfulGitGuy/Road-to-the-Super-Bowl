@@ -149,10 +149,10 @@ td.pct{min-width:64px}
 .game.me{border-color:var(--gold)}
 .game .when{font-size:12px;color:var(--ink-3)}
 .pick{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:stretch}
-.pick button{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:4px;padding:5px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.pick button{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:4px;padding:5px 8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 6px;min-width:0}
 .pick button .t{display:flex;align-items:center;gap:6px;min-width:0}
 .pick button .t{font-family:var(--display);font-weight:700;font-size:15.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pick button .p{font-size:13px;color:var(--ink-2)}
+.pick button .p{font-size:13px;color:var(--ink-2);margin-left:auto}   /* drops below the name when there isn't room for both */
 .pick button:not(.mid):hover{border-color:var(--ink)}
 .pick button.mid{padding:5px 4px;font-size:12px;color:var(--ink-3);justify-content:center;align-items:center;min-width:24px}
 .pick button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
@@ -308,8 +308,8 @@ td.team .chip{margin-right:8px}
 .rootlist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:8px}
 .rootlist li{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .rootlist .rt{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.rootlist .who{font-family:var(--display);font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rootlist .who .ov{font-family:var(--body);font-size:13px;font-weight:400;color:var(--ink-2)}
+.rootlist .who{font-family:var(--display);font-size:17px;font-weight:700;min-width:0}
+.rootlist .who .ov{font-family:var(--body);font-size:13px;font-weight:400;color:var(--ink-2);white-space:nowrap}
 .rootlist .gain{font-variant-numeric:tabular-nums;font-weight:700;color:var(--good);white-space:nowrap}
 .rootlist .det{font-size:12px;color:var(--ink-3)}
 .seedline{margin:0 0 8px;font-size:12.5px;color:var(--ink-2)}
