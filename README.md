@@ -6,7 +6,7 @@ An NFL season simulator. It plays out the rest of the season 10,000 times to est
 
 ## What you can do on the page
 
-- **See the league at a glance:** Super Bowl favorites, each division's likely winner, and the week's biggest risers and fallers.
+- **See the league at a glance:** Super Bowl favorites, each division's likely winner, the week's biggest risers and fallers, and the games that matter most this week (how much each result moves playoff chances around the league).
 - **Follow your team:** playoff chances, likely win total, possible playoff seeds, next game, and a chart of how its odds have moved week by week. Your pick is remembered in your browser.
 - **See the schedule:** every week's games with kickoff times in your own time zone, stadiums, final scores (with upsets marked), each team's win chance, and which channel or service usually carries each game. Switch to "just my team" for a full season view.
 - **Play "what if":** pick winners for upcoming games right in the schedule, or change a team's starting quarterback, and every number re-runs.

@@ -555,7 +555,7 @@ async function loadRooting() {
   const token = YEAR + '|' + season.updatedAt;
   if (!DB || token === rootToken) return;
   rootToken = token; ROOT = null;
-  try { const s = await DB.doc('rooting/' + YEAR).get(); if (token === rootToken && s.exists && validRooting(s.data())) { ROOT = s.data(); renderRoot(); } } catch (e) {}
+  try { const s = await DB.doc('rooting/' + YEAR).get(); if (token === rootToken && s.exists && validRooting(s.data())) { ROOT = s.data(); renderRoot(); renderMatter(); } } catch (e) {}
 }
 function renderRoot() {
   const box = $('#rootbox');
@@ -692,8 +692,29 @@ function renderPicker() {
   pk.innerHTML = `<p><b>Pick a team to follow.</b> You'll get its playoff chances, likely win total, next game, and how its odds have moved. You can switch anytime, and this browser remembers your choice.</p>
     <div class="picker-grid">${Object.entries(M.DIV).map(([d, ts]) => `<div class="pd"><span>${d}</span>${ts.map(t => `<button type="button" data-team="${t}">${chip(t)}${esc(M.NAMES[t])}</button>`).join('')}</div>`).join('')}</div>`;
 }
+// "Games that matter most this week": this week's remaining games ranked by how much their result moves
+// playoff chances across the league (from the rooting file: every team's chances after each result).
+function renderMatter() {
+  const card = $('#ov-matter');
+  const k = ROOT && Array.isArray(ROOT.goals) ? ROOT.goals.indexOf('playoff') : -1;
+  const ok = cur && !isFinal() && ROOT && ROOT.season === YEAR && ROOT.basedOn === season.updatedAt && ROOT.phase === 'regular' && k >= 0;
+  const rows = !ok ? [] : ROOT.games.map(g => {
+    const sw = M.TEAMS.map(t => ({ t, d: Math.abs(g.ifHome[t][k] - g.ifAway[t][k]) })).filter(x => x.d >= 5).sort((a, b) => b.d - a.d);
+    return { g, total: sw.reduce((a, x) => a + x.d, 0), sw };
+  }).filter(x => x.total >= 20).sort((a, b) => b.total - a.total).slice(0, 4);
+  card.hidden = !rows.length;
+  if (!rows.length) return;
+  const when2 = Object.fromEntries(seasonRows().map(g => [g.id, g])), pts = v => (v / 10).toFixed(0);
+  $('#ov-matter-h').textContent = `Games that matter most in Week ${ROOT.week}`;
+  $('#ov-matter-list').innerHTML = rows.map(x => { const r = when2[x.g.id] || x.g;
+    return `<li><div class="mt-game">${tl(x.g.away)}<span class="dim">at</span>${tl(x.g.home)}</div>
+      <div class="mt-total"><b class="num">${pts(x.total)}</b> points of playoff chances at stake</div>
+      <div class="mt-teams">${x.sw.slice(0, 3).map(s => `${esc(M.NAMES[s.t])} <span class="num">${pts(s.d)}</span>`).join(' · ')}</div>
+      ${r.date ? `<div class="mt-when dim">${when(r)}</div>` : ''}</li>`; }).join('');
+}
 function renderOverview() {
   const sec = $('#ov-sec');
+  renderMatter();
   if (!cur || isFinal()) { sec.hidden = true; return; }
   sec.hidden = false;
   const T = cur.teams;
